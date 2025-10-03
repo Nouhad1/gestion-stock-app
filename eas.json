@@ -1,0 +1,27 @@
+{
+  "cli": {
+    "version": ">= 2.0.0"
+  },
+  "build": {
+    "production": {
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "simulator": true
+      },
+       "env": {
+        "EXPO_RUNTIME_VERSION": "1.0.0"
+      }
+    }
+  }
+}
