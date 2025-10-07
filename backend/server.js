@@ -22,20 +22,16 @@ const produitsRoutes = require('../routes/produitsPM');
 const commandesRoutes = require('../routes/cmdRoute');
 const achatsRoutes = require('../routes/achatsRoute');
 const homeRoute = require('../routes/HomeRoutes');
+const clientsRoutes = require('../routes/clientsRoute');
 
 // Utilisation des routes
 app.use('/api/produits', produitsRoutes);
 app.use('/api/commandes', commandesRoutes);
 app.use('/api/achats', achatsRoutes);
-app.use('/api/dashboard',homeRoute)
-
-const clientsRoutes = require('../routes/clientsRoute');
+app.use('/api/dashboard',homeRoute);
 app.use('/api/clients', clientsRoutes);
 
 
-
-// Route test rapide
-app.get('/', (req, res) => res.send('Server is running 🚀'));
 
 // Lancement du serveur
 const PORT = process.env.PORT || 3306;
