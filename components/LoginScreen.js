@@ -17,7 +17,20 @@ import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
-import { API_URL } from '../config/config'; // <-- ici on récupère l'URL
+
+useEffect(() => {
+  const fetchEmployes = async () => {
+      try {
+    axios.get(`https://gestion-stock-app-production.up.railway.app/api/employes`)
+      setEmployes(res.data);
+      } catch (err) {
+        console.error('❌ Erreur API Employes:', err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEmployes();
+  }, []);
 
 const LoginScreen = () => {
   const [login, setLogin] = useState('');
