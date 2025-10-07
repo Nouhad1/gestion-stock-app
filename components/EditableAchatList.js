@@ -7,7 +7,6 @@ import {
 import axios from 'axios';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { API_URL } from '../config/config'; // <-- Import API_URL
 
 const AchatsScreen = () => {
   const [achats, setAchats] = useState([]);

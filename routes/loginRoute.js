@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
-const db = require('../backend/db'); // Assure-toi que ce fichier exporte bien une connexion mysql2/promise
+const db = require('../backend/db');
 
 // Route de connexion
 router.post('/', async (req, res) => {

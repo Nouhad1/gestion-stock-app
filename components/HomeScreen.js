@@ -16,7 +16,6 @@ import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { API_URL } from '../config/config'; // <-- URL centralisée
 
 const screenWidth = Dimensions.get('window').width;
 

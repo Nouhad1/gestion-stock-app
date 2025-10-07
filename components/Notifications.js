@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
-import { API_URL } from '../config/config'; 
 
 const Notifications = () => {
   const [lowStockProducts, setLowStockProducts] = useState([]);

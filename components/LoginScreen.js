@@ -82,7 +82,7 @@ const LoginScreen = () => {
 
     try {
       const response = await axios.post(
-        `https://gestion-stock-app-production.up.railway.app/api/login`, // <-- utilisation de l'URL centralisée
+        `https://gestion-stock-app-production.up.railway.app/api/login`, 
         { login, mot_de_passe: password },
         { headers: { 'Content-Type': 'application/json' } }
       );

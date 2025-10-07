@@ -8,7 +8,6 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
-import { API_URL } from '../config/config';
 
 const CommandesScreen = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;

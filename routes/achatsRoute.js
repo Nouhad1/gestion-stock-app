@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../backend/db'); // ⚠️ Assure-toi que ce fichier exporte bien une connexion MySQL2 (pool ou promise)
+const db = require('../backend/db');
 
 // ==================== RÉCUPÉRER TOUS LES ACHATS ====================
 router.get('/', async (req, res) => {

@@ -3,7 +3,6 @@ import {
   View, Text, TextInput, Button, StyleSheet, ScrollView, ActivityIndicator, Alert
 } from 'react-native';
 import axios from 'axios';
-import { API_URL } from '../config/config'; // <-- utiliser la constante API_URL
 
 const ProductDetailScreen = ({ route, navigation }) => {
   const { product } = route.params;
