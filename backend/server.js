@@ -23,6 +23,7 @@ const commandesRoutes = require('../routes/cmdRoute');
 const achatsRoutes = require('../routes/achatsRoute');
 const homeRoute = require('../routes/HomeRoutes');
 const clientsRoutes = require('../routes/clientsRoute');
+const loginRoutes = require('../routes/loginRoute');
 
 // Utilisation des routes
 app.use('/api/produits', produitsRoutes);
@@ -30,6 +31,7 @@ app.use('/api/commandes', commandesRoutes);
 app.use('/api/achats', achatsRoutes);
 app.use('/api/dashboard',homeRoute);
 app.use('/api/clients', clientsRoutes);
+app.use('/api/login',loginRoutes);
 
 
 
