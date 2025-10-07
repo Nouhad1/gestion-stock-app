@@ -21,7 +21,7 @@ import axios from 'axios';
 useEffect(() => {
   const fetchEmployes = async () => {
       try {
-    axios.get(`https://gestion-stock-app-production.up.railway.app/api/employes`)
+    axios.get(`https://gestion-stock-app-production.up.railway.app/api/login`)
       setEmployes(res.data);
       } catch (err) {
         console.error('❌ Erreur API Employes:', err.message);
