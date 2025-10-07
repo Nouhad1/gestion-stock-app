@@ -18,7 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
 
-useEffect(() => {
+/*useEffect(() => {
   const fetchEmployes = async () => {
       try {
     axios.get(`https://gestion-stock-app-production.up.railway.app/api/login`)
@@ -30,7 +30,7 @@ useEffect(() => {
       }
     };
     fetchEmployes();
-  }, []);
+  }, []);*/
 
 const LoginScreen = () => {
   const [login, setLogin] = useState('');

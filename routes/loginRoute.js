@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/', async (req, res) => {
+/*router.get('/', async (req, res) => {
   try {
     const [employes] = await db.query('SELECT * FROM employes');
     res.json(employes);
@@ -54,5 +54,5 @@ router.get('/', async (req, res) => {
     console.error('Erreur récupération employes:', error);
     res.status(500).json({ error: 'Erreur serveur' });
   }
-});
+});*/
 module.exports = router;
