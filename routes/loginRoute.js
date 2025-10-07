@@ -1,46 +1,49 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
-const connection = require('../backend/db'); // change ce chemin si nécessaire
+const db = require('../backend/db'); // Assure-toi que ce fichier exporte bien une connexion mysql2/promise
 
 // Route de connexion
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { login, mot_de_passe } = req.body;
-  console.log("Tentative de connexion :", login); // Debug
+  console.log("Tentative de connexion :", login);
 
   if (!login || !mot_de_passe) {
     return res.status(400).json({ message: 'Login et mot de passe requis.' });
   }
 
-  connection.query(
-    'SELECT * FROM employes WHERE login = ?',
-    [login],
-    (err, results) => {
-      if (err) {
-        console.error("Erreur SQL :", err);
-        return res.status(500).json({ message: 'Erreur serveur.' });
-      }
+  try {
+    // Vérifier si l'utilisateur existe
+    const [results] = await db.query('SELECT * FROM employes WHERE login = ?', [login]);
 
-      if (results.length === 0) {
-        return res.status(401).json({ message: 'Utilisateur non trouvé.' });
-      }
-
-      const utilisateur = results[0];
-
-      bcrypt.compare(mot_de_passe, utilisateur.mot_de_passe, (err, isMatch) => {
-        if (err) {
-          console.error("Erreur bcrypt :", err);
-          return res.status(500).json({ message: 'Erreur interne.' });
-        }
-
-        if (!isMatch) {
-          return res.status(401).json({ message: 'Mot de passe incorrect.' });
-        }
-
-        res.status(200).json({ message: 'Connexion réussie', user: utilisateur });
-      });
+    if (results.length === 0) {
+      return res.status(401).json({ message: 'Utilisateur non trouvé.' });
     }
-  );
+
+    const utilisateur = results[0];
+
+    // Comparer le mot de passe haché
+    const isMatch = await bcrypt.compare(mot_de_passe, utilisateur.mot_de_passe);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Mot de passe incorrect.' });
+    }
+
+    // Connexion réussie
+    res.status(200).json({
+      message: 'Connexion réussie',
+      user: {
+        id: utilisateur.id,
+        nom: utilisateur.nom,
+        login: utilisateur.login,
+        role: utilisateur.role
+      }
+    });
+
+  } catch (err) {
+    console.error("Erreur serveur lors de la connexion :", err);
+    res.status(500).json({ message: 'Erreur serveur.' });
+  }
 });
 
 module.exports = router;
