@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/db');
+const db = require('../backend/db');
 
-// Récupérer tous les clients
 router.get('/', async (req, res) => {
   try {
-    const [clients] = await db.promise().query('SELECT id, nom FROM clients');
+    const [clients] = await db.query('SELECT id, nom FROM clients');
     res.json(clients);
   } catch (error) {
     console.error('Erreur récupération clients:', error);

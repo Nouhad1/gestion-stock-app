@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
+import { API_URL } from '../config/config'; 
 
 const Notifications = () => {
   const [lowStockProducts, setLowStockProducts] = useState([]);
@@ -9,7 +10,7 @@ const Notifications = () => {
   // Mise à jour automatique à chaque fois que la page est affichée
   useFocusEffect(
     React.useCallback(() => {
-      axios.get('https://1c78c3d8989c.ngrok-free.app/api/produits')
+      axios.get(`https://gestion-stock-app-production.up.railway.app/api/produits`)
         .then(response => {
           const filtered = response.data.filter(p => p.quantite_stock < 5);
           setLowStockProducts(filtered);

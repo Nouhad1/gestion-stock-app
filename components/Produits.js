@@ -1,271 +1,110 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Animated,
-  ActivityIndicator,
-  SafeAreaView,
-} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import axios from 'axios';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
-import { GestureHandlerRootView, PinchGestureHandler } from 'react-native-gesture-handler';
-import AnimatedReanimated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { Picker } from '@react-native-picker/picker';
 
-const ProductList = ({ navigation }) => {
-  const [products, setProducts] = useState([]);
-  const [searchText, setSearchText] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
+const ProductList = () => {
+  const [produits, setProduits] = useState([]);
+  const [selectedDepot, setSelectedDepot] = useState('depot1');
   const [loading, setLoading] = useState(true);
-  const [selectedDepot, setSelectedDepot] = useState('depot1'); // dépôt sélectionné
-  const scaleAnims = useRef({}).current;
-
-  const scale = useSharedValue(1);
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const pinchHandler = (event) => {
-    scale.value = event.nativeEvent.scale;
-  };
-  const pinchEnd = () => {
-    scale.value = withTiming(1, { duration: 200 });
-  };
-
-  const fetchProducts = async () => {
-    try {
-      const res = await axios.get('https://1c78c3d8989c.ngrok-free.app/api/produits');
-      setProducts(res.data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Erreur chargement produits :', error);
-      setLoading(false);
-    }
-  };
+  
 
   useEffect(() => {
-    fetchProducts();
-    const interval = setInterval(fetchProducts, 10000);
-    return () => clearInterval(interval);
+    const fetchProduits = async () => {
+      try {
+        const res = await axios.get(`https://gestion-stock-app-production.up.railway.app/api/produits`);
+        setProduits(res.data);
+      } catch (err) {
+        console.error('❌ Erreur API produits:', err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduits();
   }, []);
 
-  const filteredProducts = products.filter(
-    (p) =>
-      p.reference.toLowerCase().includes(searchText.toLowerCase()) ||
-      p.designation.toLowerCase().includes(searchText.toLowerCase())
-  );
-
-  const renderAvailability = (qty) => {
-    if (qty === 0) return { text: 'Épuisé', style: styles.outOfStock, icon: 'close-circle' };
-    if (qty <= 5) return { text: 'Stock bas', style: styles.lowStock, icon: 'alert-circle' };
-    return { text: 'Disponible', style: styles.available, icon: 'checkmark-circle' };
+  const renderAvailability = (stockQty) => {
+    return stockQty > 0 ? (
+      <Text style={styles.available}>✔️ Oui</Text>
+    ) : (
+      <Text style={styles.notAvailable}>❌ Non</Text>
+    );
   };
 
-  const renderHeader = () => (
-    <View style={[styles.row, styles.tableHeader]}>
-      <Text style={[styles.cell, styles.headerText, { width: 200 }]}>Réf</Text>
-      <Text style={[styles.cell, styles.headerText, { width: 400 }]}>Désignation</Text>
-      <Text style={[styles.cell, styles.headerText, { width: 150 }]}>Prix Unitaire</Text>
-      <Text style={[styles.cell, styles.headerText, { width: 200 }]}>Prix Moyen</Text>
-      <Text style={[styles.cell, styles.headerText, { width: 150 }]}>Stock</Text>
-      <Text style={[styles.cell, styles.headerText, { width: 150 }]}>Qté Globale</Text>
-      <Text style={[styles.cell, styles.headerText, { width: 200 }]}>Disponibilité</Text>
-    </View>
-  );
+  const renderItem = ({ item }) => {
+    // Stock selon dépôt sélectionné
+    const stockAffiche =
+      selectedDepot === 'depot1' ? item.quantite_stock : item.quantite_stock_2;
+    const stockQty = Number(stockAffiche || 0);
+    const availability = renderAvailability(stockQty);
 
-  const renderItem = ({ item, index }) => {
-  if (!scaleAnims[item.reference]) scaleAnims[item.reference] = new Animated.Value(1);
-  const scaleAnim = scaleAnims[item.reference];
+    // Stock global
+    const stockDepot1 = Number(item.quantite_stock || 0);
+    const stockDepot2 = Number(item.quantite_stock_2 || 0);
+    const quantiteGlobale = stockDepot1 + stockDepot2;
 
-  const onPressIn = () =>
-    Animated.spring(scaleAnim, { toValue: 0.97, useNativeDriver: true }).start();
-  const onPressOut = () =>
-    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }).start();
+    return (
+      <View style={styles.row}>
+        <Text style={[styles.cell, { width: 100 }]}>{item.reference}</Text>
+        <Text style={[styles.cell, { width: 200 }]}>{item.designation}</Text>
+        <Text style={[styles.cell, { width: 100 }]}>{quantiteGlobale}</Text>
+        <Text style={[styles.cell, { width: 100 }]}>{stockDepot1}</Text>
+        <Text style={[styles.cell, { width: 100 }]}>{stockDepot2}</Text>
+        <Text style={[styles.cell, { width: 150 }]}>
+          {item.prix_unitaire ? `${Number(item.prix_unitaire).toFixed(2)} MAD` : "-"}
+        </Text>
+        <Text style={[styles.cell, { width: 200 }]}>
+          {item.prix_moyen_achat ? `${Number(item.prix_moyen_achat).toFixed(2)} MAD` : "-"}
+        </Text>
+        <Text style={[styles.cell, { width: 100 }]}>{availability}</Text>
+      </View>
+    );
+  };
 
-  // ✅ Choix du stock selon le dépôt
-  const stockAffiche =
-    selectedDepot === 'depot1' ? item.stockAfficheDepot1 : item.stockAfficheDepot2;
-  const stockQty = Number(stockAffiche.split(',')[0]); // Partie entière pour disponibilité
-  const availability = renderAvailability(stockQty);
-
-  // ✅ Calcul de la quantité globale (dépôt1 + dépôt2)
-  const stockDepot1 = Number(item.quantite_stock || 0);
-  const stockDepot2 = Number(item.quantite_stock_2 || 0);
-  const quantiteGlobale = stockDepot1 + stockDepot2;
+  if (loading) {
+    return <ActivityIndicator size="large" color="#0000ff" style={{ marginTop: 20 }} />;
+  }
 
   return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
-      <TouchableOpacity
-        style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}
-        onPressIn={onPressIn}
-        onPressOut={onPressOut}
-        activeOpacity={0.8}
-        onPress={() => navigation.navigate('ProductDetail', { reference: item.reference })}
+    <View style={styles.container}>
+      <Picker
+        selectedValue={selectedDepot}
+        style={styles.picker}
+        onValueChange={(itemValue) => setSelectedDepot(itemValue)}
       >
-        <Text style={[styles.cell, { width: 200 }]}>{item.reference}</Text>
-        <Text style={[styles.cell, { width: 400 }]}>{item.designation}</Text>
-        <Text style={[styles.cell, { width: 150 }]}>{Number(item.prix_unitaire).toFixed(2)} MAD</Text>
-        <Text style={[styles.cell, { width: 200 }]}>{Number(item.prix_moyen_achat).toFixed(2)} MAD</Text>
-        <Text style={[styles.cell, { width: 150, textAlign: 'center' }]}>{stockAffiche}</Text>
-        <Text style={[styles.cell, { width: 150, textAlign: 'center' }]}>{quantiteGlobale}</Text>
-        <View style={[styles.cell, { flexDirection: 'row', justifyContent: 'center', width: 200 }]}>
-          <Ionicons name={availability.icon} size={18} style={{ marginRight: 6, ...availability.style }} />
-          <Text style={availability.style}>{availability.text}</Text>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-};
+        <Picker.Item label="Dépôt 1" value="depot1" />
+        <Picker.Item label="Dépôt 2" value="depot2" />
+      </Picker>
 
+      <View style={styles.headerRow}>
+        <Text style={[styles.headerCell, { width: 100 }]}>Référence</Text>
+        <Text style={[styles.headerCell, { width: 200 }]}>Désignation</Text>
+        <Text style={[styles.headerCell, { width: 100 }]}>Global</Text>
+        <Text style={[styles.headerCell, { width: 100 }]}>Dépôt 1</Text>
+        <Text style={[styles.headerCell, { width: 100 }]}>Dépôt 2</Text>
+        <Text style={[styles.headerCell, { width: 150 }]}>Prix Unitaire</Text>
+        <Text style={[styles.headerCell, { width: 200 }]}>Prix Moyen Achat</Text>
+        <Text style={[styles.headerCell, { width: 100 }]}>Dispo</Text>
+      </View>
 
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaView style={styles.container}>
-        {/* HEADER */}
-        <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.header}>
-          <View style={styles.headerContent}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <FontAwesome5 name="boxes" size={24} color="#fff" style={{ marginRight: 10 }} />
-              <Text style={styles.headerTitle}>Gestion des Produits</Text>
-            </View>
-            <TouchableOpacity onPress={() => setShowSearch(!showSearch)}>
-              <Ionicons name="search" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-
-        {/* Recherche */}
-        {showSearch && (
-          <View style={styles.searchInputWrapper}>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="🔍 Rechercher produit..."
-              value={searchText}
-              onChangeText={setSearchText}
-              autoFocus
-            />
-            <TouchableOpacity
-              onPress={() => {
-                setShowSearch(false);
-                setSearchText('');
-              }}
-            >
-              <Ionicons name="close-circle" size={22} color="#6b7280" />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Choix dépôt */}
-        <View style={{ flexDirection: 'row', margin: 12, alignItems: 'center' }}>
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center', marginRight: 20 }}
-            onPress={() => setSelectedDepot('depot1')}
-          >
-            <Ionicons
-              name={selectedDepot === 'depot1' ? 'checkbox' : 'square-outline'}
-              size={20}
-              color="#2563eb"
-              style={{ marginRight: 6 }}
-            />
-            <Text>Dépôt Hay Mohammadi</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={{ flexDirection: 'row', alignItems: 'center' }}
-            onPress={() => setSelectedDepot('depot2')}
-          >
-            <Ionicons
-              name={selectedDepot === 'depot2' ? 'checkbox' : 'square-outline'}
-              size={20}
-              color="#2563eb"
-              style={{ marginRight: 6 }}
-            />
-            <Text>Dépôt Had Soualem</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Liste produits */}
-        {loading ? (
-          <View style={styles.loadingWrapper}>
-            <ActivityIndicator size="large" color="#1D4ED8" />
-            <Text style={styles.loadingText}>Chargement des produits...</Text>
-          </View>
-        ) : (
-          <PinchGestureHandler onGestureEvent={pinchHandler} onEnded={pinchEnd}>
-            <AnimatedReanimated.View style={[{ flex: 1 }, animatedStyle]}>
-              <ScrollView horizontal contentContainerStyle={styles.scrollContent}>
-                <View style={styles.tableContainer}>
-                  {renderHeader()}
-                  <FlatList
-                    data={filteredProducts}
-                    keyExtractor={(item) => item.reference}
-                    renderItem={renderItem}
-                    ListEmptyComponent={
-                      <Text style={styles.empty}>
-                        Aucun produit trouvé{searchText ? ` pour « ${searchText} »` : ''}
-                      </Text>
-                    }
-                  />
-                </View>
-              </ScrollView>
-            </AnimatedReanimated.View>
-          </PinchGestureHandler>
-        )}
-      </SafeAreaView>
-    </GestureHandlerRootView>
+      <FlatList
+        data={produits}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.reference}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f7fb' },
-  header: { padding: 16, paddingTop: 40 },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  searchInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 30,
-    paddingHorizontal: 16,
-    margin: 12,
-    height: 44,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    elevation: 2,
-  },
-  searchInput: { flex: 1, fontSize: 16, color: '#1f2937' },
-  scrollContent: { paddingHorizontal: 12, paddingBottom: 40, paddingTop: 16 },
-  tableContainer: { minWidth: 900, borderRadius: 8 },
-  row: {
-    flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    alignItems: 'center',
-    borderRadius: 8,
-    marginVertical: 2,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOpacity: 0.02,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  rowEven: { backgroundColor: '#fff' },
-  rowOdd: { backgroundColor: '#f9fafc' },
-  tableHeader: { backgroundColor: '#1e3a8a', borderRadius: 8, paddingVertical: 12 },
-  cell: { fontSize: 14, color: '#374151', textAlign: 'center' },
-  headerText: { color: '#fff', fontWeight: '700' },
-  available: { color: '#166534' },
-  lowStock: { color: '#ca8a04' },
-  outOfStock: { color: '#b91c1c' },
-  empty: { textAlign: 'center', marginTop: 20, color: '#6b7280', fontSize: 16 },
-  loadingWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 80 },
-  loadingText: { marginTop: 8, color: '#6b7280', fontSize: 16 },
+  container: { flex: 1, padding: 10, backgroundColor: '#fff' },
+  picker: { height: 50, width: 200, marginBottom: 10 },
+  headerRow: { flexDirection: 'row', marginBottom: 5, backgroundColor: '#f0f0f0' },
+  headerCell: { fontWeight: 'bold', padding: 5 },
+  row: { flexDirection: 'row', borderBottomWidth: 1, borderColor: '#ddd', paddingVertical: 5 },
+  cell: { padding: 5 },
+  available: { color: 'green', fontWeight: 'bold' },
+  notAvailable: { color: 'red', fontWeight: 'bold' },
 });
 
 export default ProductList;

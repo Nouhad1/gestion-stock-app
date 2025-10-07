@@ -7,6 +7,7 @@ import {
 import axios from 'axios';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { API_URL } from '../config/config'; // <-- Import API_URL
 
 const AchatsScreen = () => {
   const [achats, setAchats] = useState([]);
@@ -27,7 +28,7 @@ const AchatsScreen = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const fetchAchats = useCallback(() => {
-    axios.get('https://1c78c3d8989c.ngrok-free.app/api/achats')
+    axios.get(`https://gestion-stock-app-production.up.railway.app/api/achats`)
       .then(res => setAchats(res.data))
       .catch(() => Alert.alert('Erreur', 'Impossible de charger les achats'));
     Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
@@ -53,7 +54,7 @@ const AchatsScreen = () => {
 
     const updatedAchat = { ...achat, quantite_depot1, quantite_depot2, quantite_achat, prix_achat };
 
-    axios.put(`https://1c78c3d8989c.ngrok-free.app/api/achats/${achat.id}`, updatedAchat)
+    axios.put(`https://gestion-stock-app-production.up.railway.app/api/achats/${achat.id}`, updatedAchat)
       .then(() => { Alert.alert('Succès', 'Achat mis à jour'); fetchAchats(); })
       .catch(() => Alert.alert('Erreur', 'Impossible de sauvegarder'));
   };
@@ -67,7 +68,7 @@ const AchatsScreen = () => {
     const quantite_achat = quantite_depot1 + quantite_depot2;
     const prix_achat = newAchat.prix_achat ? Number(newAchat.prix_achat) : 0;
 
-    axios.post('https://1c78c3d8989c.ngrok-free.app/api/achats', {
+    axios.post(`https://gestion-stock-app-production.up.railway.app/api/achats`, {
       produit_reference: newAchat.produit_reference,
       quantite_depot1,
       quantite_depot2,
@@ -81,29 +82,27 @@ const AchatsScreen = () => {
     .catch(() => Alert.alert('Erreur', 'Impossible de créer l’achat'));
   };
 
-  // Création produit via modal
   const saveProduit = () => { 
-  if (!newProduit.reference || !newProduit.designation || !newProduit.quantite_stock) {
-    return Alert.alert('Erreur', 'Référence, Désignation et quantite_stock obligatoires');
-  }
+    if (!newProduit.reference || !newProduit.designation || !newProduit.quantite_stock) {
+      return Alert.alert('Erreur', 'Référence, Désignation et quantite_stock obligatoires');
+    }
 
-  const quantite_stock = parseFloat(newProduit.quantite_stock) || 0;
+    const quantite_stock = parseFloat(newProduit.quantite_stock) || 0;
 
-  axios.post('https://1c78c3d8989c.ngrok-free.app/api/produits', {
-    reference: newProduit.reference,
-    designation: newProduit.designation,
-    quantite_stock,
-    quantite_stock_2: 0
-  })
-  .then(() => {
-    Alert.alert('Succès', 'Produit créé');
-    setNewProduit({ reference: '', designation: '', quantite_stock: '' });
-    setModalVisible(false);
-    fetchAchats();
-  })
-  .catch(() => Alert.alert('Erreur', 'Impossible de créer le produit'));
-};
-
+    axios.post(`https://gestion-stock-app-production.up.railway.app/api/produits`, {
+      reference: newProduit.reference,
+      designation: newProduit.designation,
+      quantite_stock,
+      quantite_stock_2: 0
+    })
+    .then(() => {
+      Alert.alert('Succès', 'Produit créé');
+      setNewProduit({ reference: '', designation: '', quantite_stock: '' });
+      setModalVisible(false);
+      fetchAchats();
+    })
+    .catch(() => Alert.alert('Erreur', 'Impossible de créer le produit'));
+  };
 
   const renderRow = ({ item, index }) => (
     <Animated.View style={{ opacity: fadeAnim }}>
@@ -155,11 +154,9 @@ const AchatsScreen = () => {
           <FontAwesome name="plus" size={20} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity style={[styles.addButton, { backgroundColor: '#1957a3ff' }]} onPress={() => setModalVisible(true)}>
-        <Text style={{ color: '#fff', marginLeft: 6 }}>Nouveau produit</Text>
-      </TouchableOpacity>
+          <Text style={{ color: '#fff', marginLeft: 6 }}>Nouveau produit</Text>
+        </TouchableOpacity>
       </View>
-
-      
 
       {/* Modal pour ajouter produit */}
       <Modal

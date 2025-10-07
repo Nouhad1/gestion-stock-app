@@ -1,0 +1,1 @@
+const API_URL = "http://gestion-stock-app-production.up.railway.app/api";

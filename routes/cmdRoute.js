@@ -1,6 +1,6 @@
 const express = require('express');  
 const router = express.Router();
-const db = require('../config/db');
+const db = require('../backend/db');
 
 // ==================== AJOUTER UNE COMMANDE ====================
 router.post('/', (req, res) => {
@@ -168,6 +168,4 @@ router.get('/stats/produits', async (req, res) => {
   }
 });
 
-
 module.exports = router;
-

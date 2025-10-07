@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
-const connection = require('../config/db'); // change ce chemin si nécessaire
+const connection = require('../backend/db'); // change ce chemin si nécessaire
 
 // Route de connexion
 router.post('/', (req, res) => {

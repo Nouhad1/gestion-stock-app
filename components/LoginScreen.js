@@ -17,6 +17,7 @@ import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
+import { API_URL } from '../config/config'; // <-- ici on récupère l'URL
 
 const LoginScreen = () => {
   const [login, setLogin] = useState('');
@@ -68,7 +69,7 @@ const LoginScreen = () => {
 
     try {
       const response = await axios.post(
-        'https://1c78c3d8989c.ngrok-free.app/api/login',
+        `https://gestion-stock-app-production.up.railway.app/api/login`, // <-- utilisation de l'URL centralisée
         { login, mot_de_passe: password },
         { headers: { 'Content-Type': 'application/json' } }
       );
@@ -111,7 +112,6 @@ const LoginScreen = () => {
 
   return (
     <View style={styles.page}>
-      {/* Header avec gradient */}
       <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.header}>
         <View style={styles.logoContainer}>
           <FontAwesome5 name="cube" size={28} color="#2563eb" />
@@ -120,7 +120,6 @@ const LoginScreen = () => {
         <Text style={styles.subtitle}>Connexion à votre compte</Text>
       </LinearGradient>
 
-      {/* Formulaire */}
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -190,7 +189,6 @@ const LoginScreen = () => {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Footer */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>© 2025 Bluestrek. Tous droits réservés.</Text>
       </View>

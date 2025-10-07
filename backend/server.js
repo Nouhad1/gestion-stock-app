@@ -1,41 +1,44 @@
 require('dotenv').config();
 const express = require('express');
-const mysql = require('mysql2');
+const cors = require('cors');
 
 const app = express();
+
+// Middlewares
+app.use(cors());
 app.use(express.json());
 
-// Connexion MySQL
-const db = mysql.createConnection({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME
+// Middleware debug pour voir toutes les requêtes
+app.use((req, res, next) => {
+  console.log('Request reçue pour :', req.path);
+  next();
 });
 
-// Tester la connexion
-db.connect(err => {
-  if (err) {
-    console.error('❌ Erreur de connexion MySQL:', err.message);
-    process.exit(1); // Stoppe le serveur si la connexion échoue
-  }
-  console.log('✅ Connecté à MySQL Railway');
-});
+// Connexion à la base de données
+const db = require('./db'); 
 
-// Exemple de route API
-app.get('/api/produits', (req, res) => {
-  db.query('SELECT * FROM produits', (err, results) => {
-    if (err) {
-      console.error('❌ Erreur lors de la récupération des produits:', err.message);
-      return res.status(500).json({ error: 'Erreur serveur' });
-    }
-    res.json(results);
-  });
-});
+/// Routes personnalisées
+const produitsRoutes = require('../routes/produitsPM');
+const commandesRoutes = require('../routes/cmdRoute');
+const achatsRoutes = require('../routes/achatsRoute');
+const homeRoute = require('../routes/HomeRoutes');
 
-// Démarrage serveur
-const PORT = process.env.PORT || 3000;
+// Utilisation des routes
+app.use('/api/produits', produitsRoutes);
+app.use('/api/commandes', commandesRoutes);
+app.use('/api/achats', achatsRoutes);
+app.use('/api/dashboard',homeRoute)
+
+const clientsRoutes = require('../routes/clientsRoute');
+app.use('/api/clients', clientsRoutes);
+
+
+
+// Route test rapide
+app.get('/', (req, res) => res.send('Server is running 🚀'));
+
+// Lancement du serveur
+const PORT = process.env.PORT || 3306;
 app.listen(PORT, () => {
-  console.log(`🚀 Serveur Express lancé sur http://localhost:${PORT}`);
+  console.log(`🚀 Serveur Express lancé sur le port ${PORT}`);
 });

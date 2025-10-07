@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../config/db');
+const db = require('../backend/db');
 
 // GET /api/achats : liste tous les achats
 router.get('/', (req, res) => {

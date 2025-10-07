@@ -8,6 +8,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import axios from 'axios';
+import { API_URL } from '../config/config';
 
 const CommandesScreen = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -33,11 +34,11 @@ const CommandesScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    axios.get('https://1c78c3d8989c.ngrok-free.app/api/clients')
+    axios.get(`https://gestion-stock-app-production.up.railway.app/api/clients`)
       .then(res => setClients(res.data.map(c => ({ label: c.nom, value: c.id }))))
       .catch(console.error);
 
-    axios.get('https://1c78c3d8989c.ngrok-free.app/api/produits')
+    axios.get(`https://gestion-stock-app-production.up.railway.app/api/produits`)
       .then(res => setProduits(res.data.map(p => ({
         label: p.designation,
         value: p.reference,
@@ -62,10 +63,11 @@ const CommandesScreen = () => {
 
   const fetchCommandes = useCallback(async () => {
     try {
-      const res = await axios.get('https://1c78c3d8989c.ngrok-free.app/api/commandes');
-      setCommandes(res.data);
+      const res = await axios.get(`https://gestion-stock-app-production.up.railway.app/api/commandes`);
+      setCommandes(res.data || []);
     } catch (err) {
       console.error(err);
+      setCommandes([]);
     }
   }, []);
   useEffect(() => { fetchCommandes(); }, [fetchCommandes]);
@@ -98,7 +100,7 @@ const CommandesScreen = () => {
         if (qte > quantiteStock) return Alert.alert('Erreur', `Stock insuffisant. Stock disponible: ${quantiteStock}`);
         body.quantite_commande = qte;
       }
-      await axios.post('https://1c78c3d8989c.ngrok-free.app/api/commandes', body);
+      await axios.post(`https://gestion-stock-app-production.up.railway.app/api/commandes`,body);
       Alert.alert('Succès', 'Commande enregistrée.');
       resetForm();
       fetchCommandes();
@@ -124,7 +126,6 @@ const CommandesScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* HEADER avec Gradient */}
       <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.header}>
         <View style={styles.headerContent}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -134,7 +135,6 @@ const CommandesScreen = () => {
         </View>
       </LinearGradient>
 
-      {/* Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity style={[styles.tabButton, tab === 'form' && styles.activeTab]} onPress={() => setTab('form')}>
           <Icon name="add-circle-outline" size={18} color={tab === 'form' ? 'white' : '#2563eb'} />
@@ -211,6 +211,11 @@ const CommandesScreen = () => {
               data={commandes}
               keyExtractor={(item, index) => index.toString()}
               renderItem={renderItem}
+              ListEmptyComponent={
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <Text style={{ color: '#1e40af', fontSize: 16 }}>Aucune commande pour le moment.</Text>
+                </View>
+              }
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563eb']} />}
             />
           </View>

@@ -16,9 +16,9 @@ import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { API_URL } from '../config/config'; // <-- URL centralisée
 
 const screenWidth = Dimensions.get('window').width;
-const API_URL = 'https://1c78c3d8989c.ngrok-free.app/api/dashboard';
 
 const monthLabels = [
   "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
@@ -50,9 +50,9 @@ const HomeScreen = () => {
   const fetchDashboard = async (year) => {
     try {
       const [resCards, resChart, resTable] = await Promise.all([
-        axios.get(`${API_URL}/cards?year=${year}`),
-        axios.get(`${API_URL}/chart?year=${year}`),
-        axios.get(`${API_URL}/products?year=${year}`)
+        axios.get(`https://gestion-stock-app-production.up.railway.app/api/cards?year=${year}`),
+        axios.get(`https://gestion-stock-app-production.up.railway.app/api/chart?year=${year}`),
+        axios.get(`https://gestion-stock-app-production.up.railway.app/api/products?year=${year}`)
       ]);
 
       setCardsData(resCards.data);
@@ -82,7 +82,7 @@ const HomeScreen = () => {
   useEffect(() => {
     const fetchYears = async () => {
       try {
-        const res = await axios.get(`${API_URL}/years`);
+        const res = await axios.get(`https://gestion-stock-app-production.up.railway.app/api/years`);
         setYearList(res.data);
 
         if (res.data.length > 0) {
@@ -115,7 +115,6 @@ const HomeScreen = () => {
     );
   }
 
-  // --- HEADER + Graphiques + Cartes
   const renderHeader = () => (
     <View>
       {/* HEADER */}

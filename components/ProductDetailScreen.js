@@ -1,35 +1,21 @@
-import React, { useState, useEffect } from 'react'; 
+import React, { useState } from 'react'; 
 import {
-  View,
-  Text,
-  TextInput,
-  Button,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
+  View, Text, TextInput, Button, StyleSheet, ScrollView, ActivityIndicator, Alert
 } from 'react-native';
 import axios from 'axios';
+import { API_URL } from '../config/config'; // <-- utiliser la constante API_URL
 
 const ProductDetailScreen = ({ route, navigation }) => {
   const { product } = route.params;
-
   const stockInitial = product.quantite_stock ?? 0;
 
   const [designation, setDesignation] = useState(product.designation || '');
   const [prixUnitaire, setPrixUnitaire] = useState(product.prix_unitaire?.toString() || '0');
   const [quantiteCommandee, setQuantiteCommandee] = useState('0');
-  // const [prixMoyen, setPrixMoyen] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-
-  /* useEffect(() => {
-    axios.get(`https://1c78c3d8989c.ngrok-free.app/api/produits/${product.reference}/prix-moyen`)
-      .then(res => setPrixMoyen(res.data.prix_moyen))
-      .catch(err => console.error('Erreur récupération prix moyen', err));
-  }, []); */
 
   const handleQuantiteChange = (value) => {
     const qte = parseInt(value) || 0;
@@ -45,35 +31,35 @@ const ProductDetailScreen = ({ route, navigation }) => {
   const finalStockForUpdate = stockRestant < 0 ? 0 : stockRestant;
 
   const handleUpdate = async () => {
-  setErrorMessage('');
-  setSuccessMessage('');
-  setIsLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+    setIsLoading(true);
 
-  try {
-    await axios.put(`https://1c78c3d8989c.ngrok-free.app/api/produits/${product.reference}`, {
-      designation,
-      prix_unitaire: parseFloat(prixUnitaire),
-      quantite_stock: finalStockForUpdate,
-    });
+    try {
+      await axios.put(`https://gestion-stock-app-production.up.railway.app/api/produits/${product.reference}`, {
+        designation,
+        prix_unitaire: parseFloat(prixUnitaire),
+        quantite_stock: finalStockForUpdate,
+      });
 
-    setSuccessMessage('Produit mis à jour avec succès');
+      setSuccessMessage('Produit mis à jour avec succès');
 
-    setTimeout(() => {
-      if (finalStockForUpdate < 5) {
-        navigation.navigate('Notifications');
-      } else {
-        navigation.goBack();
-      }
-    }, 1500);
+      setTimeout(() => {
+        if (finalStockForUpdate < 5) {
+          navigation.navigate('Notifications');
+        } else {
+          navigation.goBack();
+        }
+      }, 1500);
 
-  } catch (error) {
-    console.error('❌ Erreur lors de la mise à jour :', error);
-    const message = error.response?.data?.message || error.message || 'Erreur inattendue';
-    setErrorMessage(message);
-  } finally {
-    setIsLoading(false);
-  }
-};
+    } catch (error) {
+      console.error('❌ Erreur lors de la mise à jour :', error);
+      const message = error.response?.data?.message || error.message || 'Erreur inattendue';
+      setErrorMessage(message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -93,13 +79,6 @@ const ProductDetailScreen = ({ route, navigation }) => {
         onChangeText={setPrixUnitaire}
         keyboardType="numeric"
       />
-
-      {/* <Text style={styles.label}>Prix moyen (calculé automatiquement) :</Text>
-      <TextInput
-        style={[styles.input, { backgroundColor: '#f0f0f0' }]}
-        value={prixMoyen}
-        editable={false}
-      /> */}
 
       <Text style={styles.label}>Quantité commandée :</Text>
       <TextInput
