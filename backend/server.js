@@ -79,7 +79,7 @@ app.get('/api/test-db', async (req, res) => {
 });
 
 // --- Lancement du serveur ---
-const PORT = process.env.PORT || 3306; 
+const PORT = process.env.PORT || 8080; 
 app.listen(PORT, () => {
   console.log(`🚀 Serveur Express lancé sur le port ${PORT}`);
 });
