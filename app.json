@@ -1,40 +1,53 @@
 {
   "expo": {
-    "name": "gestion-stock",
+    "name": "Gestion Stock",
     "slug": "gestion-stock",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo-modified.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+
     "splash": {
       "image": "./assets/logo-modified.png",
-      "resizeMode": "cover",
+      "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
+
     "updates": {
       "fallbackToCacheTimeout": 0,
       "url": "https://u.expo.dev/05296a92-0098-48a2-90ea-4209473ebf7d"
     },
+
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.bluestreck.gestionstock",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "buildNumber": "1.0.0"
     },
+
     "android": {
       "icon": "./assets/logo-modified.png",
-      "package": "com.bluestreck.gestionstock"
+      "package": "com.bluestreck.gestionstock",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logo-modified.png",
+        "backgroundColor": "#ffffff"
+      }
     },
+
     "web": {
       "favicon": "./assets/logo-modified.png"
     },
+
     "extra": {
       "eas": {
         "projectId": "05296a92-0098-48a2-90ea-4209473ebf7d"
       }
     },
+
     "owner": "nouhad",
     "runtimeVersion": {
       "policy": "appVersion"

@@ -1,8 +1,10 @@
+// backend/server.js
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
-const db = require('./db');       
+const db = require('./db'); // ✅ connexion via mysql2/promise
 
 const app = express();
 
@@ -10,7 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Middleware debug pour voir toutes les requêtes
+// Middleware debug
 app.use((req, res, next) => {
   console.log('🟢 Requête reçue pour :', req.method, req.path);
   next();
@@ -39,7 +41,8 @@ app.post('/api/login', async (req, res) => {
   }
 
   try {
-    const [results] = await db.promise().query('SELECT * FROM employes WHERE login = ?', [login]);
+    // ✅ Pas besoin de .promise()
+    const [results] = await db.query('SELECT * FROM employes WHERE login = ?', [login]);
 
     if (results.length === 0) {
       return res.status(401).json({ success: false, message: 'Utilisateur non trouvé.' });
@@ -68,18 +71,19 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// --- Route test optionnelle ---
+// --- Route test pour vérifier la connexion à MySQL ---
 app.get('/api/test-db', async (req, res) => {
   try {
-    const [rows] = await db.promise().query('SELECT 1 AS test');
+    const [rows] = await db.query('SELECT 1 AS test');
     res.json({ success: true, message: 'Connexion MySQL OK', result: rows });
   } catch (err) {
+    console.error('❌ Erreur test MySQL :', err);
     res.status(500).json({ success: false, message: 'Erreur connexion MySQL', error: err.message });
   }
 });
 
 // --- Lancement du serveur ---
-const PORT = process.env.PORT || 8080; 
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 Serveur Express lancé sur le port ${PORT}`);
 });
