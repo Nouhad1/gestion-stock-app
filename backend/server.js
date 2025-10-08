@@ -70,19 +70,41 @@ app.post('/api/login', (req, res) => {
   });
 });
 
-// --- Route test DB ---
-app.get('/api/test-db', (req, res) => {
-  db.query('SELECT 1 AS test', (err, rows) => {
+// --- Route test login ---
+app.get('/api/test-login', (req, res) => {
+  const { login, mot_de_passe } = req.query; // on passe login et mot_de_passe en query params
+
+  if (!login || !mot_de_passe) {
+    return res.status(400).json({ success: false, message: 'Login et mot de passe requis' });
+  }
+
+  const sql = 'SELECT mot_de_passe FROM employes WHERE login = ?';
+  db.query(sql, [login], (err, results) => {
     if (err) {
-      return res.status(500).json({
-        success: false,
-        message: 'Erreur connexion MySQL',
-        error: err.message,
-      });
+      console.error('Erreur SQL:', err);
+      return res.status(500).json({ success: false, message: 'Erreur serveur', error: err.message });
     }
-    res.json({ success: true, message: 'Connexion MySQL OK', result: rows });
+
+    if (results.length === 0) {
+      // utilisateur non trouvé
+      return res.json({ success: true, valide: false });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const hash = results[0].mot_de_passe;
+
+    bcrypt.compare(mot_de_passe, hash, (err, isMatch) => {
+      if (err) {
+        console.error('Erreur bcrypt:', err);
+        return res.status(500).json({ success: false, message: 'Erreur serveur' });
+      }
+
+      // retourne true si mot de passe correct, sinon false
+      res.json({ success: true, valide: isMatch });
+    });
   });
 });
+
 
 // --- Lancement du serveur ---
 app.listen(PORT, () => {
