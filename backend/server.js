@@ -90,7 +90,7 @@ app.get('/api/test-login', (req, res) => {
       return res.json({ success: true, valide: false });
     }
 
-    const hash = results[0].mot_de_passe;
+    const hash = results[0].password;
 
     bcrypt.compare(mot_de_passe, hash, (err, isMatch) => {
       if (err) {
@@ -98,10 +98,12 @@ app.get('/api/test-login', (req, res) => {
         return res.status(500).json({ success: false, message: 'Erreur serveur' });
       }
 
+      // retourne true si mot de passe correct, sinon false
       res.json({ success: true, valide: isMatch });
     });
   });
 });
+
 
 // --- Lancement du serveur ---
 app.listen(PORT, () => {
