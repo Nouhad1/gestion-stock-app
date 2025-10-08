@@ -84,7 +84,7 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
-// --- Démarrage du serveur ---
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Serveur lancé sur le port ${PORT}`);
+// --- Lancement du serveur ---
+app.listen(PORT, () => {
+  console.log(`🚀 Serveur Express lancé sur le port ${PORT}`);
 });
