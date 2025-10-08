@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const db = require('../backend/db');
 
 // Route de connexion
-router.post('/', async (req, res) => {
+router.post('/', (req, res) => {
   const { login, mot_de_passe } = req.body;
   console.log("Tentative de connexion :", login);
 
@@ -12,9 +12,12 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ message: 'Login et mot de passe requis.' });
   }
 
-  try {
-    // Vérifier si l'utilisateur existe
-    const [results] = await db.query('SELECT * FROM employes WHERE login = ?', [login]);
+  const sql = 'SELECT * FROM employes WHERE login = ?';
+  db.query(sql, [login], async (err, results) => {
+    if (err) {
+      console.error("Erreur SQL :", err);
+      return res.status(500).json({ message: 'Erreur serveur.' });
+    }
 
     if (results.length === 0) {
       return res.status(401).json({ message: 'Utilisateur non trouvé.' });
@@ -39,20 +42,7 @@ router.post('/', async (req, res) => {
         role: utilisateur.role
       }
     });
-
-  } catch (err) {
-    console.error("Erreur serveur lors de la connexion :", err);
-    res.status(500).json({ message: 'Erreur serveur.' });
-  }
+  });
 });
 
-/*router.get('/', async (req, res) => {
-  try {
-    const [employes] = await db.query('SELECT * FROM employes');
-    res.json(employes);
-  } catch (error) {
-    console.error('Erreur récupération employes:', error);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
-});*/
 module.exports = router;

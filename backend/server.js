@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
 const db = require('./db');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3306;
 
 // --- Middlewares ---
 app.use(cors());
@@ -25,7 +25,6 @@ const achatsRoutes = require('../routes/achatsRoute');
 const clientsRoutes = require('../routes/clientsRoute');
 const homeRoute = require('../routes/HomeRoutes');
 
-// --- Utilisation des routes ---
 app.use('/api/produits', produitsRoutes);
 app.use('/api/commandes', commandesRoutes);
 app.use('/api/achats', achatsRoutes);
@@ -33,15 +32,19 @@ app.use('/api/clients', clientsRoutes);
 app.use('/api/dashboard', homeRoute);
 
 // --- Route de login ---
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', (req, res) => {
   const { login, mot_de_passe } = req.body;
 
   if (!login || !mot_de_passe) {
     return res.status(400).json({ success: false, message: 'Champs requis manquants.' });
   }
 
-  try {
-    const [rows] = await db.query('SELECT * FROM employes WHERE login = ?', [login]);
+  const sql = 'SELECT * FROM employes WHERE login = ?';
+  db.query(sql, [login], async (err, rows) => {
+    if (err) {
+      console.error('❌ Erreur SQL:', err.message);
+      return res.status(500).json({ success: false, message: 'Erreur serveur.' });
+    }
 
     if (rows.length === 0) {
       return res.status(401).json({ success: false, message: 'Utilisateur non trouvé.' });
@@ -64,24 +67,21 @@ app.post('/api/login', async (req, res) => {
         role: user.role,
       },
     });
-  } catch (err) {
-    console.error('❌ Erreur SQL:', err.message);
-    res.status(500).json({ success: false, message: 'Erreur serveur.' });
-  }
+  });
 });
 
 // --- Route test DB ---
-app.get('/api/test-db', async (req, res) => {
-  try {
-    const [rows] = await db.query('SELECT 1 AS test');
+app.get('/api/test-db', (req, res) => {
+  db.query('SELECT 1 AS test', (err, rows) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: 'Erreur connexion MySQL',
+        error: err.message,
+      });
+    }
     res.json({ success: true, message: 'Connexion MySQL OK', result: rows });
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: 'Erreur connexion MySQL',
-      error: err.message,
-    });
-  }
+  });
 });
 
 // --- Lancement du serveur ---

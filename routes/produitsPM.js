@@ -12,48 +12,49 @@ function formatStockDecimal(stockFloat, longueurParRouleau) {
 }
 
 // GET tous les produits
-router.get('/', async (req, res) => {
-  try {
-    const sql = `
-      SELECT 
-        p.reference, 
-        p.designation, 
-        p.prix_unitaire, 
-        COALESCE(AVG(a.prix_achat), 0) AS prix_moyen_achat,
-        COALESCE(p.quantite_stock, 0) AS quantite_stock,
-        COALESCE(p.quantite_stock_2, 0) AS quantite_stock_2,
-        COALESCE(p.longueur_par_rouleau, 0) AS longueur_par_rouleau
-      FROM produits p
-      LEFT JOIN achats a ON a.produit_reference = p.reference
-      GROUP BY p.reference, p.designation, p.prix_unitaire, p.quantite_stock, p.quantite_stock_2, p.longueur_par_rouleau
-      ORDER BY p.reference
-    `;
-    const [rows] = await db.query(sql);
-
+router.get('/', (req, res) => {
+  const sql = `
+    SELECT 
+      p.reference, 
+      p.designation, 
+      p.prix_unitaire, 
+      COALESCE(AVG(a.prix_achat), 0) AS prix_moyen_achat,
+      COALESCE(p.quantite_stock, 0) AS quantite_stock,
+      COALESCE(p.quantite_stock_2, 0) AS quantite_stock_2,
+      COALESCE(p.longueur_par_rouleau, 0) AS longueur_par_rouleau
+    FROM produits p
+    LEFT JOIN achats a ON a.produit_reference = p.reference
+    GROUP BY p.reference, p.designation, p.prix_unitaire, p.quantite_stock, p.quantite_stock_2, p.longueur_par_rouleau
+    ORDER BY p.reference
+  `;
+  db.query(sql, (err, rows) => {
+    if (err) {
+      console.error('Erreur serveur produits :', err);
+      return res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    }
     const produits = rows.map(p => ({
       ...p,
       stockAfficheDepot1: formatStockDecimal(p.quantite_stock, p.longueur_par_rouleau),
       stockAfficheDepot2: formatStockDecimal(p.quantite_stock_2, p.longueur_par_rouleau)
     }));
-
     res.json(produits);
-  } catch (err) {
-    console.error('Erreur serveur produits :', err);
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
-  }
+  });
 });
 
 // GET produit par référence avec historique
-router.get('/:reference', async (req, res) => {
+router.get('/:reference', (req, res) => {
   const { reference } = req.params;
-  try {
-    const sql = `
-      SELECT p.*,
-        (SELECT GROUP_CONCAT(prix_achat) FROM achats WHERE produit_reference = p.reference) AS historique_achats
-      FROM produits p
-      WHERE p.reference = ?
-    `;
-    const [results] = await db.query(sql, [reference]);
+  const sql = `
+    SELECT p.*,
+      (SELECT GROUP_CONCAT(prix_achat) FROM achats WHERE produit_reference = p.reference) AS historique_achats
+    FROM produits p
+    WHERE p.reference = ?
+  `;
+  db.query(sql, [reference], (err, results) => {
+    if (err) {
+      console.error('Erreur serveur produit :', err);
+      return res.status(500).json({ message: 'Erreur serveur', error: err.message });
+    }
     if (results.length === 0) return res.status(404).json({ message: 'Produit non trouvé' });
 
     const produit = results[0];
@@ -62,14 +63,11 @@ router.get('/:reference', async (req, res) => {
       : [];
 
     res.json(produit);
-  } catch (err) {
-    console.error('Erreur serveur produit :', err);
-    res.status(500).json({ message: 'Erreur serveur', error: err.message });
-  }
+  });
 });
 
 // POST ajouter un produit
-router.post('/', async (req, res) => {
+router.post('/', (req, res) => {
   const { reference, designation, quantite_stock = 0 } = req.body;
 
   if (!reference || !designation) {
@@ -81,24 +79,23 @@ router.post('/', async (req, res) => {
     INSERT INTO produits (reference, designation, quantite_stock, quantite_stock_2)
     VALUES (?, ?, ?, ?)
   `;
-
-  try {
-    await db.query(sql, [reference, designation, qs, 0]);
+  db.query(sql, [reference, designation, qs, 0], (err, result) => {
+    if (err) {
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(400).json({ error: 'Référence déjà existante' });
+      }
+      console.error('Erreur ajout produit :', err);
+      return res.status(500).json({ error: 'Erreur serveur' });
+    }
     res.status(201).json({
       message: 'Produit ajouté avec succès',
       produit: { reference, designation, quantite_stock: qs, quantite_stock_2: 0 }
     });
-  } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: 'Référence déjà existante' });
-    }
-    console.error('Erreur ajout produit :', err);
-    res.status(500).json({ error: 'Erreur serveur' });
-  }
+  });
 });
 
 // PUT modifier un produit
-router.put('/:reference', async (req, res) => {
+router.put('/:reference', (req, res) => {
   const { reference } = req.params;
   const { designation, prix_unitaire, quantite_stock, quantite_stock_2 } = req.body;
 
@@ -111,15 +108,14 @@ router.put('/:reference', async (req, res) => {
     SET designation = ?, prix_unitaire = ?, quantite_stock = ?, quantite_stock_2 = ?
     WHERE reference = ?
   `;
-
-  try {
-    const [result] = await db.query(sql, [designation, prix_unitaire, quantite_stock, quantite_stock_2, reference]);
+  db.query(sql, [designation, prix_unitaire, quantite_stock, quantite_stock_2, reference], (err, result) => {
+    if (err) {
+      console.error('Erreur mise à jour produit :', err);
+      return res.status(500).json({ message: 'Erreur lors de la mise à jour du produit' });
+    }
     if (result.affectedRows === 0) return res.status(404).json({ message: 'Produit non trouvé' });
     res.json({ message: 'Produit mis à jour avec succès' });
-  } catch (err) {
-    console.error('Erreur mise à jour produit :', err);
-    res.status(500).json({ message: 'Erreur lors de la mise à jour du produit' });
-  }
+  });
 });
 
 module.exports = router;
