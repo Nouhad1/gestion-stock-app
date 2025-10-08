@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
 const db = require('./db');
 
 const app = express();
-const PORT = process.env.PORT || 3306;
+const PORT = process.env.PORT || 3000;
 
 // --- Middlewares ---
 app.use(cors());
@@ -72,13 +72,13 @@ app.post('/api/login', (req, res) => {
 
 // --- Route test login ---
 app.get('/api/test-login', (req, res) => {
-  const { login, mot_de_passe } = req.query; // on passe login et mot_de_passe en query params
+  const { login, mot_de_passe } = req.query;
 
   if (!login || !mot_de_passe) {
     return res.status(400).json({ success: false, message: 'Login et mot de passe requis' });
   }
 
-  const sql = 'SELECT mot_de_passe FROM employes WHERE login = ?';
+  const sql = 'SELECT password FROM employes WHERE login = ?';
   db.query(sql, [login], (err, results) => {
     if (err) {
       console.error('Erreur SQL:', err);
@@ -90,7 +90,6 @@ app.get('/api/test-login', (req, res) => {
       return res.json({ success: true, valide: false });
     }
 
-    const bcrypt = require('bcryptjs');
     const hash = results[0].mot_de_passe;
 
     bcrypt.compare(mot_de_passe, hash, (err, isMatch) => {
@@ -99,12 +98,10 @@ app.get('/api/test-login', (req, res) => {
         return res.status(500).json({ success: false, message: 'Erreur serveur' });
       }
 
-      // retourne true si mot de passe correct, sinon false
       res.json({ success: true, valide: isMatch });
     });
   });
 });
-
 
 // --- Lancement du serveur ---
 app.listen(PORT, () => {
