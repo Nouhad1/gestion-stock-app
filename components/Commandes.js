@@ -80,34 +80,48 @@ const CommandesScreen = () => {
   const resetForm = () => { setClientId(null); setProduitRef(null); setQuantite(''); setRouleaux(''); setMetres(''); setBlNum(''); setMontant(''); };
 
   const handleSubmit = async () => {
-    if (!clientId) return Alert.alert('Erreur', 'Sélectionner un client.');
-    if (!produitRef) return Alert.alert('Erreur', 'Sélectionner un produit.');
+  if (!produitRef) return Alert.alert('Erreur', 'Sélectionner un produit.');
 
-    try {
-      const body = { client_id: clientId, produit_reference: produitRef, bl_num: blNum || null, montant: montant ? parseFloat(montant) : null };
-      if (islaniere) {
-        const r = parseInt(rouleaux) || 0;
-        const m = parseInt(metres) || 0;
-        if (r <= 0 && m <= 0) return Alert.alert('Erreur', 'Renseigner au moins rouleaux ou mètres.');
-        if (r > quantiteStock) return Alert.alert('Erreur', `Stock insuffisant. Max ${quantiteStock} rouleaux.`);
-        if (m > quantiteStock * longueurParRouleau) return Alert.alert('Erreur', `Stock insuffisant. Max ${quantiteStock * longueurParRouleau} m.`);
-        if (r > 0) body.quantite_commande = r;
-        if (m > 0) body.metres_commandees = m;
-      } else {
-        const qte = parseFloat(quantite);
-        if (!qte || qte <= 0) return Alert.alert('Erreur', 'Veuillez entrer une quantité valide.');
-        if (qte > quantiteStock) return Alert.alert('Erreur', `Stock insuffisant. Stock disponible: ${quantiteStock}`);
-        body.quantite_commande = qte;
-      }
-      await axios.post(`https://gestion-stock-app-production.up.railway.app/api/commandes`,body);
-      Alert.alert('Succès', 'Commande enregistrée.');
-      resetForm();
-      fetchCommandes();
-    } catch (err) {
-      console.error(err.response?.data || err);
-      Alert.alert('Erreur', "L'enregistrement a échoué.");
+  try {
+    const body = {
+      client_id: clientId || null, // facultatif
+      produit_reference: produitRef,
+      bl_num: blNum || null, // facultatif
+      montant: montant ? parseFloat(montant) : null
+    };
+
+    if (islaniere) {
+      const r = parseInt(rouleaux) || 0;
+      const m = parseInt(metres) || 0;
+
+      if (r <= 0 && m <= 0)
+        return Alert.alert('Erreur', 'Renseigner au moins rouleaux ou mètres.');
+      if (r > quantiteStock)
+        return Alert.alert('Erreur', `Stock insuffisant. Max ${quantiteStock} rouleaux.`);
+      if (m > quantiteStock * longueurParRouleau)
+        return Alert.alert('Erreur', `Stock insuffisant. Max ${quantiteStock * longueurParRouleau} m.`);
+
+      if (r > 0) body.quantite_commande = r;
+      if (m > 0) body.metres_commandees = m;
+    } else {
+      const qte = parseFloat(quantite);
+      if (!qte || qte <= 0)
+        return Alert.alert('Erreur', 'Veuillez entrer une quantité valide.');
+      if (qte > quantiteStock)
+        return Alert.alert('Erreur', `Stock insuffisant. Stock disponible: ${quantiteStock}`);
+      body.quantite_commande = qte;
     }
-  };
+
+    await axios.post(`https://gestion-stock-app-production.up.railway.app/api/commandes`, body);
+    Alert.alert('Succès', 'Produit ajouté avec succès.');
+    resetForm();
+    fetchCommandes();
+  } catch (err) {
+    console.error(err.response?.data || err);
+    Alert.alert('Erreur', "L'enregistrement a échoué.");
+  }
+};
+
 
   const renderItem = ({ item, index }) => {
     let displayQuantite = item.quantite_commande > 0 ? `${item.quantite_commande}` : item.metres_commandees > 0 ? `${item.metres_commandees} m` : '-';

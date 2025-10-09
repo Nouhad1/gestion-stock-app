@@ -1,4 +1,4 @@
-const express = require('express');  
+const express = require('express');
 const router = express.Router();
 const db = require('../backend/db');
 
@@ -6,8 +6,9 @@ const db = require('../backend/db');
 router.post('/', (req, res) => {
   let { client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant } = req.body;
 
-  if (!client_id || !produit_reference || (quantite_commande === undefined && metres_commandees === undefined)) {
-    return res.status(400).json({ message: 'Champs manquants' });
+  // ✅ client_id facultatif maintenant
+  if (!produit_reference || (quantite_commande === undefined && metres_commandees === undefined)) {
+    return res.status(400).json({ message: 'Produit et quantité requis' });
   }
 
   quantite_commande = parseFloat(quantite_commande) || 0;
@@ -46,7 +47,7 @@ router.post('/', (req, res) => {
         db.query(
           `INSERT INTO commandes (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, date_commande) 
            VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-          [client_id, produit_reference, quantite_commande, metres_commandees, bl_num || null, montant || null],
+          [client_id || null, produit_reference, quantite_commande, metres_commandees, bl_num || null, montant || null],
           (err2) => {
             if (err2) {
               console.error('Erreur insertion commande :', err2);
@@ -73,7 +74,7 @@ router.post('/', (req, res) => {
         db.query(
           `INSERT INTO commandes (client_id, produit_reference, quantite_commande, bl_num, montant, date_commande) 
            VALUES (?, ?, ?, ?, ?, NOW())`,
-          [client_id, produit_reference, quantite_commande, bl_num || null, montant || null],
+          [client_id || null, produit_reference, quantite_commande, bl_num || null, montant || null],
           (err2) => {
             if (err2) {
               console.error('Erreur insertion commande :', err2);
@@ -97,12 +98,94 @@ router.post('/', (req, res) => {
   );
 });
 
+// ==================== AJOUTER PLUSIEURS COMMANDES ====================
+router.post('/multiples', async (req, res) => {
+  const { commandes } = req.body;
+
+  if (!Array.isArray(commandes) || commandes.length === 0) {
+    return res.status(400).json({ message: 'Aucune commande reçue.' });
+  }
+
+  const connection = await db.promise().getConnection();
+  await connection.beginTransaction();
+
+  try {
+    for (const cmd of commandes) {
+      const { client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant } = cmd;
+
+      if (!produit_reference || (!quantite_commande && !metres_commandees)) {
+        throw new Error(`Champs manquants pour la commande du produit ${produit_reference}`);
+      }
+
+      const [produitRows] = await connection.query(
+        `SELECT designation, COALESCE(quantite_stock,0) AS quantite_stock, COALESCE(longueur_par_rouleau,0) AS longueur_par_rouleau
+         FROM produits WHERE reference = ?`,
+        [produit_reference]
+      );
+      if (produitRows.length === 0) throw new Error(`Produit introuvable : ${produit_reference}`);
+
+      const produit = produitRows[0];
+      const designation = produit.designation || '';
+      let quantite_stock = parseFloat(produit.quantite_stock) || 0;
+      const longueur_par_rouleau = parseFloat(produit.longueur_par_rouleau) || 0;
+      const isLaniere = designation.toLowerCase().includes('roul');
+
+      if (isLaniere) {
+        const qteMaxMetres = quantite_stock * longueur_par_rouleau;
+        if (metres_commandees > qteMaxMetres) {
+          throw new Error(`Stock insuffisant pour ${produit_reference}: ${metres_commandees}m > ${qteMaxMetres}m`);
+        }
+
+        const rouleauxUtilises = metres_commandees / longueur_par_rouleau;
+        const nouveauStock = quantite_stock - rouleauxUtilises;
+
+        await connection.query(
+          `INSERT INTO commandes (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, date_commande)
+           VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+          [client_id || null, produit_reference, quantite_commande || 0, metres_commandees || 0, bl_num || null, montant || null]
+        );
+
+        await connection.query(
+          `UPDATE produits SET quantite_stock = ? WHERE reference = ?`,
+          [parseFloat(nouveauStock.toFixed(2)), produit_reference]
+        );
+      } else {
+        if (quantite_commande > quantite_stock) {
+          throw new Error(`Stock insuffisant pour ${produit_reference}: ${quantite_commande} > ${quantite_stock}`);
+        }
+
+        const nouveauStock = quantite_stock - quantite_commande;
+
+        await connection.query(
+          `INSERT INTO commandes (client_id, produit_reference, quantite_commande, bl_num, montant, date_commande)
+           VALUES (?, ?, ?, ?, ?, NOW())`,
+          [client_id || null, produit_reference, quantite_commande, bl_num || null, montant || null]
+        );
+
+        await connection.query(
+          `UPDATE produits SET quantite_stock = ? WHERE reference = ?`,
+          [parseFloat(nouveauStock.toFixed(2)), produit_reference]
+        );
+      }
+    }
+
+    await connection.commit();
+    res.status(201).json({ message: 'Toutes les commandes ont été enregistrées avec succès.' });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Erreur insertion multiple :', error);
+    res.status(500).json({ message: error.message || 'Erreur serveur lors de l\'ajout multiple' });
+  } finally {
+    connection.release();
+  }
+});
+
 // ==================== RECUPERER TOUTES LES COMMANDES ====================
 router.get('/', (req, res) => {
   const sql = `
     SELECT 
       c.numCmd, 
-      cl.nom AS nom_client, 
+      COALESCE(cl.nom, '—') AS nom_client, 
       p.designation AS designation_produit, 
       c.quantite_commande, 
       c.metres_commandees,
@@ -110,7 +193,7 @@ router.get('/', (req, res) => {
       c.bl_num,
       c.montant
     FROM commandes c
-    JOIN clients cl ON c.client_id = cl.id
+    LEFT JOIN clients cl ON c.client_id = cl.id
     JOIN produits p ON c.produit_reference = p.reference
     ORDER BY c.date_commande DESC
   `;
@@ -125,7 +208,6 @@ router.get('/', (req, res) => {
 
 // ==================== STATISTIQUES ====================
 
-// Stats journalier
 router.get('/stats/journalier', (req, res) => {
   const moisNum = Number(req.query.mois);
   const anneeNum = Number(req.query.annee);
