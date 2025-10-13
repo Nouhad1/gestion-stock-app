@@ -71,15 +71,50 @@ const LoginScreen = () => {
   };
 
   const handleLogin = async () => {
+  if (!login || !password) {
+    setErrorMsg('Veuillez saisir votre login et votre mot de passe.');
+    startShake();
+    return;
+  }
+
+  setLoading(true);
+  setErrorMsg('');
+
   try {
-    const response = await axios.post(`https://gestion-stock-app-production.up.railway.app/api/login`, { login, mot_de_passe });
-    if (response.data.success) {
-      navigation.replace('HomeScreen');
+    const response = await axios.post(
+      `https://gestion-stock-app-production.up.railway.app/api/login`,
+      { login, mot_de_passe: password },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
+    if (response.data.success && response.data.user) {
+      await AsyncStorage.setItem('userToken', JSON.stringify(response.data.user));
+
+      if (remember) {
+        await AsyncStorage.setItem('savedLogin', login);
+        await AsyncStorage.setItem('savedPassword', password);
+      } else {
+        await AsyncStorage.removeItem('savedLogin');
+        await AsyncStorage.removeItem('savedPassword');
+      }
+
+      Alert.alert('Succès', 'Connexion réussie !');
+      navigation.replace('HomeScreen'); // ✅ mets ici le bon nom d’écran
     } else {
-      Alert.alert('Erreur', response.data.message);
+      setErrorMsg(response.data.message || 'Échec de l’authentification.');
+      startShake();
     }
   } catch (error) {
-    Alert.alert('Erreur', 'Erreur de connexion au serveur');
+    if (error.response) {
+      setErrorMsg(error.response.data.message || 'Erreur serveur.');
+    } else if (error.request) {
+      setErrorMsg('Le serveur est injoignable.');
+    } else {
+      setErrorMsg('Une erreur inconnue est survenue.');
+    }
+    startShake();
+  } finally {
+    setLoading(false);
   }
 };
 
