@@ -51,7 +51,9 @@ app.post('/api/login', (req, res) => {
     }
 
     const user = rows[0];
-    const passwordMatch = await bcrypt.compare(mot_de_passe, user.mot_de_passe);
+
+    // 🔑 Remplacer mot_de_passe par password
+    const passwordMatch = await bcrypt.compare(mot_de_passe, user.password);
 
     if (!passwordMatch) {
       return res.status(401).json({ success: false, message: 'Mot de passe incorrect.' });
@@ -61,17 +63,17 @@ app.post('/api/login', (req, res) => {
       success: true,
       message: 'Connexion réussie',
       user: {
-        id: user.id,
+        maticule: user.maticule,
         login: user.login,
-        nom: user.nom,
-        role: user.role,
+        // Ajoute d'autres champs si nécessaire
       },
     });
   });
 });
 
+
 // --- Route test login ---
-app.get('/api/test-login', (req, res) => {
+/*app.get('/api/test-login', (req, res) => {
   const { login, mot_de_passe } = req.query;
 
   if (!login || !mot_de_passe) {
@@ -102,7 +104,7 @@ app.get('/api/test-login', (req, res) => {
       res.json({ success: true, valide: isMatch });
     });
   });
-});
+});*/
 
 // --- Lancement du serveur ---
 app.listen(PORT, () => {
