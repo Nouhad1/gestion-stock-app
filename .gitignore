@@ -1,0 +1,10 @@
+# Ignorer les fichiers locaux Expo
+.expo/
+
+# Ignorer les builds natifs si tu utilises Expo
+/android/
+/ios/
+
+/node_modules/
+/npm-debug.log
+/expo-debug.log
