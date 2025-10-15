@@ -19,4 +19,5 @@ local.properties
 android/*
 !android/gradlew
 !android/gradlew.bat
+!/android/app/build.gradle
 
