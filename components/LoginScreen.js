@@ -99,7 +99,8 @@ const LoginScreen = () => {
       }
 
       Alert.alert('Succès', 'Connexion réussie !');
-      navigation.replace('HomeScreen'); // ✅ mets ici le bon nom d’écran
+      navigation.navigate('Main');
+      console.log("HomeScreen chargé !");
     } else {
       setErrorMsg(response.data.message || 'Échec de l’authentification.');
       startShake();
