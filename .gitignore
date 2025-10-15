@@ -1,9 +1,11 @@
 # Ignorer les fichiers locaux Expo
 .expo/
 
-# Ignorer les builds natifs si tu utilises Expo
-/android/
-/ios/
+# Ignorer les builds natifs sauf gradlew
+/android/*
+!/android/gradlew
+!/android/gradlew.bat
+#/ios/
 
 /node_modules/
 /npm-debug.log
