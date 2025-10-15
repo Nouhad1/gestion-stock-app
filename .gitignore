@@ -1,13 +1,39 @@
-# Ignorer les fichiers locaux Expo
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
 .expo/
+dist/
+web-build/
+expo-env.d.ts
 
-# Ignorer les builds natifs sauf gradlew
-/android/*
-!/android/gradlew
-!/android/gradlew.bat
-!/android/app/build.gradle
-#/ios/
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
 
-/node_modules/
-/npm-debug.log
-/expo-debug.log
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+o-debug.log
