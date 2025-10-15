@@ -5,6 +5,7 @@
 /android/*
 !/android/gradlew
 !/android/gradlew.bat
+!/android/app/build.gradle
 #/ios/
 
 /node_modules/
