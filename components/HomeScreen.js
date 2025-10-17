@@ -45,7 +45,6 @@ const HomeScreen = () => {
 
   const [tableData, setTableData] = useState([]);
   const navigation = useNavigation();
-
   const API_BASE = "https://gestion-stock-app-production.up.railway.app/api/dashboard";
 
   // === FETCH DASHBOARD ===
@@ -57,11 +56,19 @@ const HomeScreen = () => {
         axios.get(`${API_BASE}/products?year=${year}`)
       ]);
 
-      setCardsData(resCards.data);
+      // --- Cards Data ---
+      setCardsData({
+        totalEntrees: Number(resCards.data.totalEntrees) || 0,
+        valeurAchats: Number(resCards.data.valeurAchats) || 0,
+        totalSorties: Number(resCards.data.totalSorties) || 0,
+        valeurSorties: Number(resCards.data.valeurSorties) || 0,
+      });
 
+      // --- Chart Data ---
       const dataMap = monthLabels.map(label => {
         const found = resChart.data.find(d => d.month === label);
-        return found ? found.ca : 0;
+        const ca = parseFloat(found?.ca);
+        return isNaN(ca) ? 0 : ca;
       });
 
       setChartData({
@@ -75,7 +82,14 @@ const HomeScreen = () => {
         ],
       });
 
-      setTableData(resTable.data);
+      // --- Table Data ---
+      const safeTable = resTable.data.map(item => ({
+        ...item,
+        totalQuantity: parseFloat(item.totalQuantity) || 0
+      }));
+
+      setTableData(safeTable);
+
     } catch (err) {
       console.error('Erreur fetch dashboard:', err);
     }
@@ -120,7 +134,6 @@ const HomeScreen = () => {
 
   const renderHeader = () => (
     <View>
-      {/* HEADER */}
       <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.header}>
         <View style={styles.headerContent}>
           <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
@@ -136,7 +149,6 @@ const HomeScreen = () => {
         </View>
       </LinearGradient>
 
-      {/* Sélection année */}
       <View style={{ margin: 10, zIndex: 1000 }}>
         <DropDownPicker
           open={openYear}
@@ -149,7 +161,6 @@ const HomeScreen = () => {
         />
       </View>
 
-      {/* Cartes */}
       <View style={styles.cardRow}>
         <View style={styles.card}>
           <Text>Total des entrées</Text>
@@ -159,7 +170,7 @@ const HomeScreen = () => {
         <View style={styles.card}>
           <Text>Valeur des entrées</Text>
           <FontAwesome5 name="shopping-cart" size={28} color="#28a745" style={{ marginBottom: 5 }} />
-          <Text style={styles.cardValue}>{cardsData.valeurAchats} DH</Text>
+          <Text style={styles.cardValue}>{cardsData.valeurAchats.toLocaleString('fr-FR')} DH</Text>
         </View>
       </View>
 
@@ -172,11 +183,10 @@ const HomeScreen = () => {
         <View style={styles.card}>
           <Text>Valeur des sorties</Text>
           <FontAwesome5 name="coins" size={28} color="#ffc107" style={{ marginBottom: 5 }} />
-          <Text style={styles.cardValue}>{cardsData.valeurSorties} DH</Text>
+          <Text style={styles.cardValue}>{cardsData.valeurSorties.toLocaleString('fr-FR')} DH</Text>
         </View>
       </View>
 
-      {/* Graphique */}
       <Text style={styles.sectionTitle}>📊 Chiffre d'affaires mensuel</Text>
       <LineChart
         data={chartData}
@@ -188,18 +198,13 @@ const HomeScreen = () => {
           decimalPlaces: 0,
           color: (opacity = 1) => `rgba(0, 123, 255, ${opacity})`,
           labelColor: (opacity = 1) => `rgba(0,0,0,${opacity})`,
-          propsForDots: {
-            r: "4",
-            strokeWidth: "2",
-            stroke: "#007bff"
-          },
+          propsForDots: { r: "4", strokeWidth: "2", stroke: "#007bff" },
         }}
         bezier
         style={{ marginVertical: 10, borderRadius: 12 }}
         fromZero
       />
 
-      {/* Tableau produits */}
       <Text style={styles.sectionTitle}>📦 Produits commandés</Text>
       <View style={styles.tableHeader}>
         <Text style={[styles.tableCellHeader, { flex: 2 }]}>Désignation</Text>
@@ -216,7 +221,7 @@ const HomeScreen = () => {
         renderItem={({ item }) => (
           <View style={styles.tableRow}>
             <Text style={[styles.tableCell, { flex: 2 }]}>{item.designation}</Text>
-            <Text style={[styles.tableCell, { flex: -2 }]}>{item.totalQuantity || 0}</Text>
+            <Text style={[styles.tableCell, { flex: -2 }]}>{item.totalQuantity.toLocaleString('fr-FR')}</Text>
           </View>
         )}
         ListEmptyComponent={
@@ -234,21 +239,9 @@ const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9f9f9' },
   loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   cardRow: { flexDirection: 'row', justifyContent: 'space-between', margin: 10 },
-  card: {
-    flex: 1,
-    backgroundColor: '#fff',
-    margin: 5,
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3
-  },
+  card: { flex: 1, backgroundColor: '#fff', margin: 5, padding: 20, borderRadius: 12, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5, elevation: 3 },
   cardValue: { fontSize: 16, fontWeight: 'bold', color: '#007bff' },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', margin: 10, color: '#333' },
   tableHeader: { flexDirection: 'row', backgroundColor: '#ecded1ff', padding: 10 },
@@ -258,7 +251,7 @@ const styles = StyleSheet.create({
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
   headerSubtitle: { color: '#d1d5db', fontSize: 14, marginTop: 2 },
-  tableCellHeader: { fontSize: 14, color: '#000000ff', fontWeight: 'bold', alignItems: 'center' },
+  tableCellHeader: { fontSize: 14, color: '#000', fontWeight: 'bold', alignItems: 'center' },
 });
 
 export default HomeScreen;

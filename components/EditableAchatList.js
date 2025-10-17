@@ -1,9 +1,11 @@
+
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, FlatList, TouchableOpacity,
   ScrollView, Alert, StyleSheet, Animated, RefreshControl,
-  SafeAreaView, Modal
+   Modal
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
