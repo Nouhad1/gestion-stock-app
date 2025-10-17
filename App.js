@@ -1,4 +1,5 @@
 import React from 'react';
+import { LogBox } from 'react-native'; // 👈 Import du LogBox
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -6,6 +7,11 @@ import LoginScreen from './components/LoginScreen';
 import ProductDetailScreen from './components/ProductDetailScreen';
 import NotificationsScreen from './components/Notifications';
 import BottomTabNavigator from './components/BottomTabNavigator';
+
+// 👇 Ignore le warning SafeAreaView
+LogBox.ignoreLogs([
+  'SafeAreaView has been deprecated',
+]);
 
 const Stack = createNativeStackNavigator();
 

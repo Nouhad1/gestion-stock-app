@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   View,
   Text,
-  SafeAreaView,
   ActivityIndicator,
   FlatList,
   StyleSheet,
@@ -46,12 +46,15 @@ const HomeScreen = () => {
   const [tableData, setTableData] = useState([]);
   const navigation = useNavigation();
 
+  const API_BASE = "https://gestion-stock-app-production.up.railway.app/api/dashboard";
+
+  // === FETCH DASHBOARD ===
   const fetchDashboard = async (year) => {
     try {
       const [resCards, resChart, resTable] = await Promise.all([
-        axios.get(`https://gestion-stock-app-production.up.railway.app/api/cards?year=${year}`),
-        axios.get(`https://gestion-stock-app-production.up.railway.app/api/chart?year=${year}`),
-        axios.get(`https://gestion-stock-app-production.up.railway.app/api/products?year=${year}`)
+        axios.get(`${API_BASE}/cards?year=${year}`),
+        axios.get(`${API_BASE}/chart?year=${year}`),
+        axios.get(`${API_BASE}/products?year=${year}`)
       ]);
 
       setCardsData(resCards.data);
@@ -78,10 +81,11 @@ const HomeScreen = () => {
     }
   };
 
+  // === FETCH YEARS ===
   useEffect(() => {
     const fetchYears = async () => {
       try {
-        const res = await axios.get(`https://gestion-stock-app-production.up.railway.app/api/years`);
+        const res = await axios.get(`${API_BASE}/years`);
         setYearList(res.data);
 
         if (res.data.length > 0) {
