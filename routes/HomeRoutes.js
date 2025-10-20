@@ -4,11 +4,12 @@ const db = require('../backend/db');
 
 // ==================== ROUTES DASHBOARD ====================
 
-// GET /api/dashboard/years
+// 🔹 GET /api/dashboard/years
 router.get('/years', (req, res) => {
   const sql = `
-    SELECT DISTINCT YEAR(date_commande) as year
+    SELECT DISTINCT YEAR(date_commande) AS year
     FROM commandes
+    WHERE date_commande IS NOT NULL
     ORDER BY year DESC
   `;
   db.query(sql, (err, rows) => {
@@ -21,7 +22,7 @@ router.get('/years', (req, res) => {
   });
 });
 
-// GET /api/dashboard/cards?year=2025
+// 🔹 GET /api/dashboard/cards?year=2025
 router.get('/cards', (req, res) => {
   const { year } = req.query;
   if (!year) return res.status(400).json({ error: "Année requise" });
@@ -66,7 +67,7 @@ router.get('/cards', (req, res) => {
   });
 });
 
-// GET /api/dashboard/chart?year=2025
+// 🔹 GET /api/dashboard/chart?year=2025
 router.get('/chart', (req, res) => {
   const { year } = req.query;
   if (!year) return res.status(400).json({ error: "Année requise" });
@@ -92,30 +93,34 @@ router.get('/chart', (req, res) => {
 
     const result = rows.map(r => ({
       month: monthLabels[r.month - 1],
-      ca: r.ca
+      ca: r.ca || 0
     }));
 
     res.json(result);
   });
 });
 
-// GET /api/dashboard/products?year=2025
+// 🔹 GET /api/dashboard/products?year=2025
 router.get('/products', (req, res) => {
   const { year } = req.query;
   if (!year) return res.status(400).json({ error: "Année requise" });
 
+  // ✅ Correction : condition déplacée dans le JOIN
   const sql = `
-    SELECT p.designation, SUM(c.quantite_commande) AS totalQuantity
+    SELECT 
+      p.designation, 
+      COALESCE(SUM(c.quantite_commande), 0) AS totalQuantity
     FROM produits p
-    LEFT JOIN commandes c ON c.produit_reference = p.reference
-    WHERE YEAR(c.date_commande) = ?
-    GROUP BY p.reference
+    LEFT JOIN commandes c 
+      ON c.produit_reference = p.reference 
+      AND YEAR(c.date_commande) = ?
+    GROUP BY p.reference, p.designation
     ORDER BY totalQuantity DESC
   `;
 
   db.query(sql, [year], (err, rows) => {
     if (err) {
-      console.error("Erreur /products :", err);
+      console.error("Erreur /products :", err.sqlMessage || err);
       return res.status(500).json({ error: 'Erreur serveur' });
     }
     res.json(rows);
