@@ -4,63 +4,61 @@ const db = require('../backend/db');
 
 // ==================== AJOUTER UNE COMMANDE ====================
 router.post('/', (req, res) => {
-  let { client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant } = req.body;
+  let { client_id, produit_reference, quantite_commande, metres_commandees, bl_num, prix_unitaire } = req.body;
 
-  // ✅ client_id facultatif maintenant
   if (!produit_reference || (quantite_commande === undefined && metres_commandees === undefined)) {
     return res.status(400).json({ message: 'Produit et quantité requis' });
   }
 
   quantite_commande = parseFloat(quantite_commande) || 0;
   metres_commandees = parseFloat(metres_commandees) || 0;
+  prix_unitaire = parseFloat(prix_unitaire) || 0;
 
   if (quantite_commande <= 0 && metres_commandees <= 0) {
     return res.status(400).json({ message: 'Quantité ou mètres requis' });
   }
 
-  // Récupération du produit
   db.query(
     `SELECT designation, COALESCE(quantite_stock,0) AS quantite_stock, COALESCE(longueur_par_rouleau,0) AS longueur_par_rouleau 
      FROM produits WHERE reference = ?`,
     [produit_reference],
     (err, produitRows) => {
-      if (err) {
-        console.error('Erreur récupération produit :', err);
-        return res.status(500).json({ message: 'Erreur serveur' });
-      }
+      if (err) return res.status(500).json({ message: 'Erreur serveur' });
       if (produitRows.length === 0) return res.status(404).json({ message: 'Produit introuvable' });
 
       const produit = produitRows[0];
       const designation = produit.designation || '';
-      let quantite_stock = parseFloat(produit.quantite_stock) || 0;
-      const longueur_par_rouleau = parseFloat(produit.longueur_par_rouleau) || 0;
+      let stock = parseFloat(produit.quantite_stock) || 0;
+      const longueurParRouleau = parseFloat(produit.longueur_par_rouleau) || 0;
       const isLaniere = designation.toLowerCase().includes('roul');
 
+      let montant = 0;
+
       if (isLaniere) {
-        const qteMaxMetres = quantite_stock * longueur_par_rouleau;
-        if (metres_commandees > qteMaxMetres) {
-          return res.status(400).json({ message: `La quantité demandée (${metres_commandees} m) dépasse le stock disponible (${qteMaxMetres} m).` });
+        const qMetres = metres_commandees;
+        const qRouleaux = quantite_commande;
+
+        const qteMaxMetres = stock * longueurParRouleau;
+        if (qMetres > qteMaxMetres) {
+          return res.status(400).json({ message: `La quantité demandée (${qMetres} m) dépasse le stock disponible (${qteMaxMetres} m).` });
         }
-        const rouleauxUtilises = metres_commandees / longueur_par_rouleau;
-        const nouveauStock = quantite_stock - rouleauxUtilises;
+
+        const rouleauxUtilises = qMetres / longueurParRouleau;
+        stock -= rouleauxUtilises;
+
+        montant = ((qRouleaux > 0 ? qRouleaux : qMetres) * prix_unitaire).toFixed(2);
 
         db.query(
-          `INSERT INTO commandes (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, date_commande) 
-           VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-          [client_id || null, produit_reference, quantite_commande, metres_commandees, bl_num || null, montant || null],
+          `INSERT INTO commandes (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, prix_unitaire, montant, date_commande)
+           VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
+          [client_id || null, produit_reference, qRouleaux || 0, qMetres || 0, bl_num || null, prix_unitaire, montant],
           (err2) => {
-            if (err2) {
-              console.error('Erreur insertion commande :', err2);
-              return res.status(500).json({ message: 'Erreur serveur lors de l\'ajout de la commande' });
-            }
+            if (err2) return res.status(500).json({ message: 'Erreur lors de l\'ajout de la commande' });
             db.query(
               `UPDATE produits SET quantite_stock = ? WHERE reference = ?`,
-              [parseFloat(nouveauStock.toFixed(2)), produit_reference],
+              [parseFloat(stock.toFixed(2)), produit_reference],
               (err3) => {
-                if (err3) {
-                  console.error('Erreur mise à jour stock :', err3);
-                  return res.status(500).json({ message: 'Erreur serveur lors de la mise à jour du stock' });
-                }
+                if (err3) return res.status(500).json({ message: 'Erreur lors de la mise à jour du stock' });
                 res.status(201).json({ message: 'Commande enregistrée avec succès' });
               }
             );
@@ -68,26 +66,21 @@ router.post('/', (req, res) => {
         );
 
       } else {
-        if (quantite_commande > quantite_stock) return res.status(400).json({ message: 'Stock insuffisant' });
-        const nouveauStock = quantite_stock - quantite_commande;
+        if (quantite_commande > stock) return res.status(400).json({ message: 'Stock insuffisant' });
+        stock -= quantite_commande;
+        montant = (quantite_commande * prix_unitaire).toFixed(2);
 
         db.query(
-          `INSERT INTO commandes (client_id, produit_reference, quantite_commande, bl_num, montant, date_commande) 
-           VALUES (?, ?, ?, ?, ?, NOW())`,
-          [client_id || null, produit_reference, quantite_commande, bl_num || null, montant || null],
+          `INSERT INTO commandes (client_id, produit_reference, quantite_commande, bl_num, prix_unitaire, montant, date_commande)
+           VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+          [client_id || null, produit_reference, quantite_commande, bl_num || null, prix_unitaire, montant],
           (err2) => {
-            if (err2) {
-              console.error('Erreur insertion commande :', err2);
-              return res.status(500).json({ message: 'Erreur serveur lors de l\'ajout de la commande' });
-            }
+            if (err2) return res.status(500).json({ message: 'Erreur lors de l\'ajout de la commande' });
             db.query(
               `UPDATE produits SET quantite_stock = ? WHERE reference = ?`,
-              [parseFloat(nouveauStock.toFixed(2)), produit_reference],
+              [parseFloat(stock.toFixed(2)), produit_reference],
               (err3) => {
-                if (err3) {
-                  console.error('Erreur mise à jour stock :', err3);
-                  return res.status(500).json({ message: 'Erreur serveur lors de la mise à jour du stock' });
-                }
+                if (err3) return res.status(500).json({ message: 'Erreur lors de la mise à jour du stock' });
                 res.status(201).json({ message: 'Commande enregistrée avec succès' });
               }
             );
@@ -97,6 +90,8 @@ router.post('/', (req, res) => {
     }
   );
 });
+
+
 
 // ==================== AJOUTER PLUSIEURS COMMANDES ====================
 router.post('/multiples', async (req, res) => {
@@ -111,62 +106,67 @@ router.post('/multiples', async (req, res) => {
 
   try {
     for (const cmd of commandes) {
-      const { client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant } = cmd;
+      const { client_id, produit_reference, quantite_commande, metres_commandees, bl_num, prix_unitaire } = cmd;
 
       if (!produit_reference || (!quantite_commande && !metres_commandees)) {
         throw new Error(`Champs manquants pour la commande du produit ${produit_reference}`);
       }
 
+      // Récupération du produit
       const [produitRows] = await connection.query(
         `SELECT designation, COALESCE(quantite_stock,0) AS quantite_stock, COALESCE(longueur_par_rouleau,0) AS longueur_par_rouleau
          FROM produits WHERE reference = ?`,
         [produit_reference]
       );
+
       if (produitRows.length === 0) throw new Error(`Produit introuvable : ${produit_reference}`);
 
       const produit = produitRows[0];
       const designation = produit.designation || '';
-      let quantite_stock = parseFloat(produit.quantite_stock) || 0;
-      const longueur_par_rouleau = parseFloat(produit.longueur_par_rouleau) || 0;
+      let stock = parseFloat(produit.quantite_stock) || 0;
+      const longueurParRouleau = parseFloat(produit.longueur_par_rouleau) || 0;
       const isLaniere = designation.toLowerCase().includes('roul');
 
+      let montant = 0;
+
       if (isLaniere) {
-        const qteMaxMetres = quantite_stock * longueur_par_rouleau;
-        if (metres_commandees > qteMaxMetres) {
-          throw new Error(`Stock insuffisant pour ${produit_reference}: ${metres_commandees}m > ${qteMaxMetres}m`);
+        const qMetres = parseFloat(metres_commandees) || 0;
+        const qRouleaux = parseFloat(quantite_commande) || 0;
+
+        const qteMaxMetres = stock * longueurParRouleau;
+        if (qMetres > qteMaxMetres) {
+          throw new Error(`Stock insuffisant pour ${produit_reference}: ${qMetres}m > ${qteMaxMetres}m`);
         }
 
-        const rouleauxUtilises = metres_commandees / longueur_par_rouleau;
-        const nouveauStock = quantite_stock - rouleauxUtilises;
+        const rouleauxUtilises = qMetres / longueurParRouleau;
+        stock -= rouleauxUtilises;
+
+        montant = ((qRouleaux > 0 ? qRouleaux : qMetres) * parseFloat(prix_unitaire)).toFixed(2);
 
         await connection.query(
-          `INSERT INTO commandes (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, date_commande)
-           VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-          [client_id || null, produit_reference, quantite_commande || 0, metres_commandees || 0, bl_num || null, montant || null]
-        );
-
-        await connection.query(
-          `UPDATE produits SET quantite_stock = ? WHERE reference = ?`,
-          [parseFloat(nouveauStock.toFixed(2)), produit_reference]
+          `INSERT INTO commandes (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, prix_unitaire, montant, date_commande)
+           VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
+          [client_id || null, produit_reference, qRouleaux || 0, qMetres || 0, bl_num || null, prix_unitaire || 0, montant]
         );
       } else {
-        if (quantite_commande > quantite_stock) {
-          throw new Error(`Stock insuffisant pour ${produit_reference}: ${quantite_commande} > ${quantite_stock}`);
-        }
+        const q = parseFloat(quantite_commande) || 0;
+        if (q > stock) throw new Error(`Stock insuffisant pour ${produit_reference}: ${q} > ${stock}`);
+        stock -= q;
 
-        const nouveauStock = quantite_stock - quantite_commande;
-
-        await connection.query(
-          `INSERT INTO commandes (client_id, produit_reference, quantite_commande, bl_num, montant, date_commande)
-           VALUES (?, ?, ?, ?, ?, NOW())`,
-          [client_id || null, produit_reference, quantite_commande, bl_num || null, montant || null]
-        );
+        montant = (q * parseFloat(prix_unitaire)).toFixed(2);
 
         await connection.query(
-          `UPDATE produits SET quantite_stock = ? WHERE reference = ?`,
-          [parseFloat(nouveauStock.toFixed(2)), produit_reference]
+          `INSERT INTO commandes (client_id, produit_reference, quantite_commande, bl_num, prix_unitaire, montant, date_commande)
+           VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+          [client_id || null, produit_reference, q, bl_num || null, prix_unitaire || 0, montant]
         );
       }
+
+      // Mise à jour du stock
+      await connection.query(
+        `UPDATE produits SET quantite_stock = ? WHERE reference = ?`,
+        [parseFloat(stock.toFixed(2)), produit_reference]
+      );
     }
 
     await connection.commit();
@@ -180,6 +180,7 @@ router.post('/multiples', async (req, res) => {
   }
 });
 
+
 // ==================== RECUPERER TOUTES LES COMMANDES ====================
 router.get('/', (req, res) => {
   const sql = `
@@ -191,6 +192,7 @@ router.get('/', (req, res) => {
       c.metres_commandees,
       DATE_FORMAT(c.date_commande, '%Y-%m-%d') AS date_commande,
       c.bl_num,
+      c.prix_unitaire,
       c.montant
     FROM commandes c
     LEFT JOIN clients cl ON c.client_id = cl.id

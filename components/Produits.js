@@ -1,28 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, FlatList, ActivityIndicator, StyleSheet,
-  ScrollView, RefreshControl, Animated
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
+  ScrollView,
 } from 'react-native';
 import axios from 'axios';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const ProductList = () => {
+const API_URL = 'https://gestion-stock-app-production.up.railway.app/api/produits';
+
+export default function ProductTable() {
   const [produits, setProduits] = useState([]);
   const [selectedDepot, setSelectedDepot] = useState('depot1');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const fadeAnim = new Animated.Value(0);
 
   const fetchProduits = async () => {
     try {
-      const res = await axios.get(`https://gestion-stock-app-production.up.railway.app/api/produits`);
+      const res = await axios.get(API_URL);
       setProduits(res.data);
-      Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
     } catch (err) {
-      console.error('❌ Erreur API produits:', err.message);
+      console.error('Erreur API produits:', err.message);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -30,117 +37,168 @@ const ProductList = () => {
     fetchProduits();
   }, []);
 
-  const onRefresh = async () => {
+  const onRefresh = () => {
     setRefreshing(true);
-    await fetchProduits();
-    setRefreshing(false);
+    fetchProduits();
   };
 
+  // Fonction pour afficher l'état du stock
   const renderAvailability = (stockQty) => {
-    return stockQty > 0 ? (
-      <Text style={styles.available}>✔️ Oui</Text>
-    ) : (
-      <Text style={styles.notAvailable}>❌ Non</Text>
+    let status = '';
+    let style = {};
+
+    if (stockQty > 3) {
+      status = 'Dispo';
+      style = styles.inStock;
+    } else if (stockQty > 0 && stockQty <= 3) {
+      status = 'Faible';
+      style = styles.lowStock;
+    } else {
+      status = 'Rupture';
+      style = styles.outOfStock;
+    }
+
+    return (
+      <View style={[styles.availability, style]}>
+        <Text style={styles.availabilityText}>{status}</Text>
+      </View>
     );
   };
 
+  // Ligne du tableau
   const renderItem = ({ item, index }) => {
     const stockDepot1 = Number(item.quantite_stock || 0);
     const stockDepot2 = Number(item.quantite_stock_2 || 0);
     const quantiteGlobale = stockDepot1 + stockDepot2;
-    const stockAffiche = selectedDepot === 'depot1' ? stockDepot1 : stockDepot2;
-    const availability = renderAvailability(stockAffiche);
+    const stockSelected = selectedDepot === 'depot1' ? stockDepot1 : stockDepot2;
+
+    const prixUnitaire =
+      item.prix_unitaire != null && !isNaN(item.prix_unitaire)
+        ? Number(item.prix_unitaire).toFixed(2)
+        : '-';
+    const prixMoyen =
+      item.prix_moyen_achat != null && !isNaN(item.prix_moyen_achat)
+        ? Number(item.prix_moyen_achat).toFixed(2)
+        : '-';
 
     return (
-      <Animated.View style={{ opacity: fadeAnim }}>
-        <View style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
-          <Text style={[styles.cell, { width: 120 }]}>{item.reference}</Text>
-          <Text style={[styles.cell, { width: 250 }]}>{item.designation}</Text>
-          <Text style={[styles.cell, { width: 100 }]}>{quantiteGlobale}</Text>
-          <Text style={[styles.cell, { width: 100 }]}>{stockDepot1}</Text>
-          <Text style={[styles.cell, { width: 100 }]}>{stockDepot2}</Text>
-          <Text style={[styles.cell, { width: 150 }]}>
-            {item.prix_unitaire ? `${Number(item.prix_unitaire).toFixed(2)} MAD` : "-"}
-          </Text>
-          <Text style={[styles.cell, { width: 180 }]}>
-            {item.prix_moyen_achat ? `${Number(item.prix_moyen_achat).toFixed(2)} MAD` : "-"}
-          </Text>
-          <Text style={[styles.cell, { width: 100 }]}>{availability}</Text>
-        </View>
-      </Animated.View>
+      <View style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
+        <Text style={[styles.cell, { width: 100 }]}>{item.reference}</Text>
+        <Text
+          style={[
+            styles.cell,
+            {
+              width: 400,
+              textAlign: 'center',
+              textAlignVertical: 'center',
+              flexWrap: 'wrap',
+            },
+          ]}
+        >
+          {item.designation}
+        </Text>
+        <Text style={[styles.cell, { width: 150 }]}>{stockSelected}</Text>
+        <Text style={[styles.cell, { width: 80 }]}>{quantiteGlobale}</Text>
+        <Text style={[styles.cell, { width: 120 }]}>
+          {prixUnitaire !== '-' ? `${prixUnitaire} MAD` : '-'}
+        </Text>
+        <Text style={[styles.cell, { width: 120 }]}>
+          {prixMoyen !== '-' ? `${prixMoyen} MAD` : '-'}
+        </Text>
+        <View style={[styles.cell, { width: 100 }]}>{renderAvailability(stockSelected)}</View>
+      </View>
     );
   };
 
   if (loading) {
-    return <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />;
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text>Chargement des produits...</Text>
+      </View>
+    );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      {/* Titre */}
       <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.header}>
         <Text style={styles.headerTitle}>📦 Liste des Produits</Text>
       </LinearGradient>
 
-      <View style={styles.filterBar}>
-        <Text style={styles.filterLabel}>Afficher le stock du :</Text>
-        <Picker
-          selectedValue={selectedDepot}
-          style={styles.picker}
-          onValueChange={(value) => setSelectedDepot(value)}
-        >
-          <Picker.Item label="Dépôt Hay Mohammadi" value="depot1" />
-          <Picker.Item label="Dépôt Had Soualem" value="depot2" />
-        </Picker>
-      </View>
+      {/* Sélecteur de dépôt */}
+      <Picker
+        selectedValue={selectedDepot}
+        style={styles.picker}
+        onValueChange={(itemValue) => setSelectedDepot(itemValue)}
+      >
+        <Picker.Item label="Dépôt Hay Mohemmadi" value="depot1" />
+        <Picker.Item label="Dépôt Had Soualem" value="depot2" />
+      </Picker>
 
+      {/* Scroll horizontal */}
       <ScrollView horizontal>
-        <View style={{ minWidth: 1100 }}>
-          <View style={[styles.row, styles.tableHeader]}>
-            <Text style={[styles.cell, { width: 120 }]}>Référence</Text>
-            <Text style={[styles.cell, { width: 250 }]}>Désignation</Text>
-            <Text style={[styles.cell, { width: 100 }]}>Global</Text>
-            <Text style={[styles.cell, { width: 100 }]}>Dépôt 1</Text>
-            <Text style={[styles.cell, { width: 100 }]}>Dépôt 2</Text>
-            <Text style={[styles.cell, { width: 150 }]}>Prix Unitaire</Text>
-            <Text style={[styles.cell, { width: 180 }]}>Prix Moyen Achat</Text>
-            <Text style={[styles.cell, { width: 100 }]}>Dispo</Text>
+        <View>
+          {/* Header */}
+          <View style={[styles.row, styles.headerRow]}>
+            <Text style={[styles.headerCell, { width: 100 }]}>Référence</Text>
+            <Text style={[styles.headerCell, { width: 400 }]}>Désignation</Text>
+            <Text style={[styles.headerCell, { width: 150 }]}>
+              {selectedDepot === 'depot1' ? 'Dépôt Hay Mohemmadi' : 'Dépôt Had Soualem'}
+            </Text>
+            <Text style={[styles.headerCell, { width: 80 }]}>Global</Text>
+            <Text style={[styles.headerCell, { width: 120 }]}>Prix Unitaire</Text>
+            <Text style={[styles.headerCell, { width: 120 }]}>Prix Moyen Achat</Text>
+            <Text style={[styles.headerCell, { width: 100 }]}>Dispo</Text>
           </View>
 
           <FlatList
             data={produits}
-            renderItem={renderItem}
             keyExtractor={(item) => item.reference}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            renderItem={renderItem}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563eb']} />
+            }
           />
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f7fb' },
-  header: { padding: 16, paddingTop: 40 },
-  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
-  filterBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  header: { padding: 16, paddingTop: 20, marginBottom: 10 },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff'},
+  picker: {
+    height: 50,
+    width: '100%',
+    marginBottom: 10,
+    alignSelf: 'center',
     backgroundColor: '#fff',
-    marginHorizontal: 10,
-    marginVertical: 8,
-    padding: 10,
-    borderRadius: 10,
-    elevation: 1,
+    borderRadius: 8,
   },
-  filterLabel: { fontSize: 15, fontWeight: '600', marginRight: 10, color: '#1f2937' },
-  picker: { height: 50, width: 220 },
-  tableHeader: { backgroundColor: '#e0e7ff', borderRadius: 6 },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8 },
+  row: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderColor: '#ddd',
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
   rowEven: { backgroundColor: '#fff' },
-  rowOdd: { backgroundColor: '#f9fafc' },
-  cell: { paddingHorizontal: 6, textAlign: 'center', color: '#1f2937' },
-  available: { color: '#16a34a', fontWeight: 'bold' },
-  notAvailable: { color: '#dc2626', fontWeight: 'bold' },
+  rowOdd: { backgroundColor: '#f9f9f9' },
+  headerRow: { backgroundColor: '#2563eb' },
+  cell: {
+    paddingHorizontal: 6,
+    color: '#111',
+    textAlign: 'center',
+    textAlignVertical: 'center',
+  },
+  headerCell: { paddingHorizontal: 6, fontWeight: 'bold', color: '#fff', textAlign: 'center' },
+  availability: { paddingVertical: 4, paddingHorizontal: 6, borderRadius: 12 },
+  inStock: { backgroundColor: '#d1fae5' },
+  lowStock: { backgroundColor: '#fef3c7' },
+  outOfStock: { backgroundColor: '#fee2e2' },
+  availabilityText: { fontWeight: 'bold', textAlign: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
-
-export default ProductList;

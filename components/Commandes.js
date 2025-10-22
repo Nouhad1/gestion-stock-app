@@ -1,237 +1,258 @@
-
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from "react";
 import {
-  View, Text, TextInput, FlatList, StyleSheet,
-  TouchableOpacity, ScrollView, RefreshControl, Alert, Animated
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import DropDownPicker from 'react-native-dropdown-picker';
-import Icon from 'react-native-vector-icons/MaterialIcons';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import axios from 'axios';
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  Alert,
+  RefreshControl,
+  ScrollView,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { SafeAreaView } from "react-native-safe-area-context";
+import DropDownPicker from "react-native-dropdown-picker";
+import axios from "axios";
 
 const CommandesScreen = () => {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
-  }, []);
+  const [activeTab, setActiveTab] = useState("nouvelle");
 
-  const [tab, setTab] = useState('form');
-  const [clients, setClients] = useState([]);
-  const [produits, setProduits] = useState([]);
-  const [commandes, setCommandes] = useState([]);
-  const [openClient, setOpenClient] = useState(false);
-  const [openProduit, setOpenProduit] = useState(false);
+  // Formulaire
+  const [blNum, setBlNum] = useState("");
   const [clientId, setClientId] = useState(null);
   const [produitRef, setProduitRef] = useState(null);
-  const [quantite, setQuantite] = useState('');
-  const [rouleaux, setRouleaux] = useState('');
-  const [metres, setMetres] = useState('');
-  const [blNum, setBlNum] = useState('');
-  const [montant, setMontant] = useState('');
-  const [quantiteStock, setQuantiteStock] = useState(0);
-  const [longueurParRouleau, setLongueurParRouleau] = useState(0);
+  const [quantite, setQuantite] = useState("");
+  const [rouleaux, setRouleaux] = useState("");
+  const [metres, setMetres] = useState("");
+  const [prixUnitaire, setPrixUnitaire] = useState("");
+
+  const [commandesMultiple, setCommandesMultiple] = useState([]);
+
+  // Données
+  const [clients, setClients] = useState([]);
+  const [produits, setProduits] = useState([]);
+  const [commandesPassees, setCommandesPassees] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    axios.get(`https://gestion-stock-app-production.up.railway.app/api/clients`)
-      .then(res => setClients(res.data.map(c => ({ label: c.nom, value: c.id }))))
-      .catch(console.error);
+  const [openClient, setOpenClient] = useState(false);
+  const [openProduit, setOpenProduit] = useState(false);
 
-    axios.get(`https://gestion-stock-app-production.up.railway.app/api/produits`)
-      .then(res => setProduits(res.data.map(p => ({
-        label: p.designation,
-        value: p.reference,
-        longueur_par_rouleau: Number(p.longueur_par_rouleau) || 0,
-        quantite_stock: Number(p.quantite_stock) || 0,
-        type: p.designation.toUpperCase().includes('ROUL') ? 'laniere' : 'autre'
-      }))))
-      .catch(console.error);
+  const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
+
+  // Chargement clients/produits
+  useEffect(() => {
+    axios.get(`${API_URL}/clients`).then((res) =>
+      setClients(res.data.map((c) => ({ label: c.nom, value: c.id })))
+    );
+
+    axios.get(`${API_URL}/produits`).then((res) =>
+      setProduits(
+        res.data.map((p) => ({
+          label: p.designation,
+          value: p.reference,
+          quantite_stock: Number(p.quantite_stock) || 0,
+          longueur_par_rouleau: Number(p.longueur_par_rouleau) || 0,
+          type: p.designation.toUpperCase().includes("ROUL")
+            ? "laniere"
+            : "autre",
+        }))
+      )
+    );
+
+    fetchCommandes();
   }, []);
-
-  useEffect(() => {
-    const p = produits.find(prod => prod.value === produitRef);
-    if (p) {
-      setQuantiteStock(p.quantite_stock);
-      setLongueurParRouleau(p.longueur_par_rouleau);
-    } else {
-      setQuantiteStock(0);
-      setLongueurParRouleau(0);
-    }
-    setQuantite(''); setRouleaux(''); setMetres('');
-  }, [produitRef, produits]);
 
   const fetchCommandes = useCallback(async () => {
     try {
-      const res = await axios.get(`https://gestion-stock-app-production.up.railway.app/api/commandes`);
-      setCommandes(res.data || []);
+      const res = await axios.get(`${API_URL}/commandes`);
+      setCommandesPassees(res.data || []);
     } catch (err) {
       console.error(err);
-      setCommandes([]);
+      setCommandesPassees([]);
     }
   }, []);
-  useEffect(() => { fetchCommandes(); }, [fetchCommandes]);
-  const onRefresh = () => { setRefreshing(true); fetchCommandes().finally(() => setRefreshing(false)); };
 
-  const produitSelectionne = produits.find(p => p.value === produitRef);
-  const islaniere = produitSelectionne?.type === 'laniere';
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchCommandes().finally(() => setRefreshing(false));
+  };
 
-  const handleMetresChange = text => { setMetres(text.replace(/[^0-9]/g, '')); if(text) setRouleaux(''); };
-  const handleRouleauxChange = text => { setRouleaux(text.replace(/[^0-9]/g, '')); if(text) setMetres(''); };
-  const resetForm = () => { setClientId(null); setProduitRef(null); setQuantite(''); setRouleaux(''); setMetres(''); setBlNum(''); setMontant(''); };
+  const produitSelectionne = produits.find((p) => p.value === produitRef);
+  const isLaniere = produitSelectionne?.type === "laniere";
+  const quantiteStock = produitSelectionne?.quantite_stock || 0;
+  const longueurParRouleau = produitSelectionne?.longueur_par_rouleau || 0;
 
-  const handleSubmit = async () => {
-  if (!produitRef) return Alert.alert('Erreur', 'Sélectionner un produit.');
+  const handleAddProduct = () => {
+    if (!blNum) return Alert.alert("Erreur", "Veuillez saisir le BL.");
+    if (!clientId) return Alert.alert("Erreur", "Veuillez choisir un client.");
+    if (!produitRef) return Alert.alert("Erreur", "Veuillez choisir un produit.");
+    if (!prixUnitaire) return Alert.alert("Erreur", "Veuillez saisir le prix unitaire.");
 
-  try {
     const body = {
-      client_id: clientId || null, // facultatif
+      bl_num: blNum,
+      client_id: clientId,
       produit_reference: produitRef,
-      bl_num: blNum || null, // facultatif
-      montant: montant ? parseFloat(montant) : null
+      prix_unitaire: parseFloat(prixUnitaire),
     };
 
-    if (islaniere) {
+    if (isLaniere) {
       const r = parseInt(rouleaux) || 0;
       const m = parseInt(metres) || 0;
-
       if (r <= 0 && m <= 0)
-        return Alert.alert('Erreur', 'Renseigner au moins rouleaux ou mètres.');
+        return Alert.alert("Erreur", "Renseignez rouleaux ou mètres.");
       if (r > quantiteStock)
-        return Alert.alert('Erreur', `Stock insuffisant. Max ${quantiteStock} rouleaux.`);
+        return Alert.alert("Erreur", `Stock max ${quantiteStock} rouleaux.`);
       if (m > quantiteStock * longueurParRouleau)
-        return Alert.alert('Erreur', `Stock insuffisant. Max ${quantiteStock * longueurParRouleau} m.`);
-
+        return Alert.alert("Erreur", `Stock max ${quantiteStock * longueurParRouleau} m.`);
       if (r > 0) body.quantite_commande = r;
       if (m > 0) body.metres_commandees = m;
+      body.montant = ((r > 0 ? r : m) * body.prix_unitaire).toFixed(2);
     } else {
-      const qte = parseFloat(quantite);
-      if (!qte || qte <= 0)
-        return Alert.alert('Erreur', 'Veuillez entrer une quantité valide.');
-      if (qte > quantiteStock)
-        return Alert.alert('Erreur', `Stock insuffisant. Stock disponible: ${quantiteStock}`);
-      body.quantite_commande = qte;
+      const q = parseFloat(quantite);
+      if (!q || q <= 0) return Alert.alert("Erreur", "Quantité invalide.");
+      if (q > quantiteStock)
+        return Alert.alert("Erreur", `Stock max ${quantiteStock}.`);
+      body.quantite_commande = q;
+      body.montant = (q * body.prix_unitaire).toFixed(2);
     }
 
-    await axios.post(`https://gestion-stock-app-production.up.railway.app/api/commandes`, body);
-    Alert.alert('Succès', 'Produit ajouté avec succès.');
-    resetForm();
-    fetchCommandes();
-  } catch (err) {
-    console.error(err.response?.data || err);
-    Alert.alert('Erreur', "L'enregistrement a échoué.");
-  }
+    setCommandesMultiple((prev) => [...prev, body]);
+
+    // Réinitialiser champs produit
+    setProduitRef(null);
+    setQuantite("");
+    setRouleaux("");
+    setMetres("");
+    setPrixUnitaire("");
+  };
+
+  const handleSubmit = async () => {
+    if (commandesMultiple.length === 0) return Alert.alert("Erreur", "Aucun produit ajouté.");
+    try {
+      await axios.post(`${API_URL}/commandes/multiples`, {
+        commandes: commandesMultiple,
+      });
+      Alert.alert("Succès", "Commande enregistrée !");
+      setCommandesMultiple([]);
+      setBlNum("");
+      setClientId(null);
+      fetchCommandes();
+    } catch (err) {
+      console.error(err.response?.data || err);
+      Alert.alert("Erreur", "Impossible d'enregistrer la commande.");
+    }
+  };
+
+  const renderCommande = ({ item }) => {
+  const client = item.nom_client || item.client_id || '-';
+  const produit = item.designation_produit || item.produit_reference || '-';
+  const quantite = item.quantite_commande || item.metres_commandees || '-';
+  const prixUnitaire = item.prix_unitaire != null ? parseFloat(item.prix_unitaire).toFixed(2) : '-';
+  const montant = item.montant != null ? parseFloat(item.montant).toFixed(2) : '-';
+
+  return (
+    <View style={styles.row}>
+      <Text style={[styles.cell, { width:100 }]}>{client}</Text>
+      <Text style={[styles.cell, { width:350 }]}>{produit}</Text>
+      <Text style={[styles.cell, { width:100 }]}>{quantite}</Text>
+      <Text style={[styles.cell, { width:100 }]}>{prixUnitaire}</Text>
+      <Text style={[styles.cell, { width:100 }]}>{montant}</Text>
+    </View>
+  );
 };
 
 
-  const renderItem = ({ item, index }) => {
-    let displayQuantite = item.quantite_commande > 0 ? `${item.quantite_commande}` : item.metres_commandees > 0 ? `${item.metres_commandees} m` : '-';
-    return (
-      <View style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
-        <Text style={[styles.cell, { width: 180, textAlign: 'left' }]}>{item.nom_client}</Text>
-        <Text style={[styles.cell, { width: 220, textAlign: 'center' }]}>{item.designation_produit}</Text>
-        <Text style={[styles.cell, { width: 100 }]}>{displayQuantite}</Text>
-        <Text style={[styles.cell, { width: 100 }]}>{item.date_commande}</Text>
-        <Text style={[styles.cell, { width: 100 }]}>{item.bl_num || '-'}</Text>
-        <Text style={[styles.cell, { width: 120 }]}>{item.montant || '-'}</Text>
-      </View>
-    );
-  };
-
-  return (
+  return (              
     <SafeAreaView style={styles.container}>
       <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.header}>
         <View style={styles.headerContent}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="receipt-outline" size={24} color="#fff" style={{ marginRight: 10 }} />
-            <Text style={styles.headerTitle}>Gestion des Commandes</Text>
-          </View>
+          <Text style={styles.headerTitle}>🧾 Gestion Commandes</Text>
         </View>
       </LinearGradient>
 
+      {/* Onglets */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity style={[styles.tabButton, tab === 'form' && styles.activeTab]} onPress={() => setTab('form')}>
-          <Icon name="add-circle-outline" size={18} color={tab === 'form' ? 'white' : '#2563eb'} />
-          <Text style={[styles.tabText, tab === 'form' && styles.activeTabText]}> Nouvelle commande</Text>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "nouvelle" && styles.activeTab]}
+          onPress={() => setActiveTab("nouvelle")}
+        >
+          <Text style={[styles.tabText, activeTab === "nouvelle" && styles.activeTabText]}>
+            Nouvelle commande
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.tabButton, tab === 'list' && styles.activeTab]} onPress={() => setTab('list')}>
-          <Icon name="list-alt" size={18} color={tab === 'list' ? 'white' : '#2563eb'} />
-          <Text style={[styles.tabText, tab === 'list' && styles.activeTabText]}> Commandes passées</Text>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === "passees" && styles.activeTab]}
+          onPress={() => setActiveTab("passees")}
+        >
+          <Text style={[styles.tabText, activeTab === "passees" && styles.activeTabText]}>
+            Commandes passées
+          </Text>
         </TouchableOpacity>
       </View>
 
-      {tab === 'form' ? (
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 20 }}>
-          <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
-            <Text style={styles.label}>BL N° :</Text>
-            <TextInput placeholder="Ex: BL001" placeholderTextColor="#63676eff" value={blNum} onChangeText={setBlNum} style={styles.input}/>
+      {activeTab === "nouvelle" ? (
+        <ScrollView style={{ padding: 12 }} nestedScrollEnabled>
+          <TextInput placeholder="Numéro BL" value={blNum} onChangeText={setBlNum} style={styles.input} />
+          <DropDownPicker
+            open={openClient}
+            value={clientId}
+            items={clients}
+            setOpen={setOpenClient}
+            setValue={setClientId}
+            placeholder="Sélectionner un client"
+            containerStyle={{ marginBottom: 12 }}
+          />
+          <DropDownPicker
+            open={openProduit}
+            value={produitRef}
+            items={produits}
+            setOpen={setOpenProduit}
+            setValue={setProduitRef}
+            placeholder="Sélectionner un produit"
+            containerStyle={{ marginBottom: 12 }}
+          />
+          {isLaniere ? (
+            <>
+              <TextInput placeholder="Rouleaux" value={rouleaux} onChangeText={setRouleaux} keyboardType="numeric" style={styles.input} />
+              <TextInput placeholder="Mètres" value={metres} onChangeText={setMetres} keyboardType="numeric" style={styles.input} />
+            </>
+          ) : (
+            <TextInput placeholder="Quantité" value={quantite} onChangeText={setQuantite} keyboardType="numeric" style={styles.input} />
+          )}
+          <TextInput placeholder="Prix unitaire" value={prixUnitaire} onChangeText={setPrixUnitaire} keyboardType="numeric" style={styles.input} />
+          <TouchableOpacity onPress={handleAddProduct} style={[styles.button, { backgroundColor: "#f59e0b" }]}>
+            <Text style={styles.buttonText}>Ajouter un produit</Text>
+          </TouchableOpacity>
 
-            <Text style={styles.label}>Client :</Text>
-            <DropDownPicker open={openClient} value={clientId} items={clients}
-              setOpen={setOpenClient} setValue={setClientId} setItems={setClients}
-              searchable placeholder="Sélectionner un client"
-              style={styles.dropdown} dropDownContainerStyle={styles.dropdownContainer} listMode="MODAL"
-            />
-
-            <Text style={styles.label}>Produit :</Text>
-            <DropDownPicker open={openProduit} value={produitRef} items={produits}
-              setOpen={setOpenProduit} setValue={setProduitRef} setItems={setProduits}
-              searchable placeholder="Sélectionner un produit"
-              style={styles.dropdown} dropDownContainerStyle={styles.dropdownContainer} listMode="MODAL"
-            />
-
-            {produitSelectionne && (
-              <View style={styles.stockBox}>
-                <Text style={styles.stockText}>Stock disponible : {quantiteStock}</Text>
-                {islaniere && longueurParRouleau > 0 && <Text style={styles.stockText}>Longueur par rouleau : {longueurParRouleau} m</Text>}
-              </View>
-            )}
-
-            {islaniere ? (
-              <>
-                <Text style={styles.label}>Nombre de rouleaux :</Text>
-                <TextInput placeholder="Ex: 2" placeholderTextColor="#63676eff" value={rouleaux} onChangeText={handleRouleauxChange} keyboardType="numeric" style={styles.input}/>
-                <Text style={styles.label}>Mètres :</Text>
-                <TextInput placeholder="Ex: 10" placeholderTextColor="#63676eff" value={metres} onChangeText={handleMetresChange} keyboardType="numeric" style={styles.input}/>
-              </>
-            ) : (
-              <>
-                <Text style={styles.label}>Quantité :</Text>
-                <TextInput placeholder="Ex: 5" placeholderTextColor="#63676eff" value={quantite} onChangeText={text => setQuantite(text.replace(/[^0-9]/g, ''))} keyboardType="numeric" style={styles.input}/>
-              </>
-            )}
-
-            <Text style={styles.label}>Montant :</Text>
-            <TextInput placeholder="Ex: 2000" placeholderTextColor="#63676eff" value={montant} onChangeText={setMontant} keyboardType="numeric" style={styles.input}/>
-
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} activeOpacity={0.8}>
-              <Icon name="save" size={20} color="white" />
-              <Text style={styles.submitText}> Enregistrer la commande</Text>
-            </TouchableOpacity>
-          </Animated.View>
+          {commandesMultiple.length > 0 && (
+            <View style={{ marginTop: 20, backgroundColor: "#e0f2fe", borderRadius: 8, padding: 10 }}>
+              <Text style={{ fontWeight: "bold", marginBottom: 8 }}>Produits ajoutés :</Text>
+              {commandesMultiple.map((c, i) => (
+                <Text key={i}>• {c.produit_reference} : {c.quantite_commande || c.metres_commandees} × {c.prix_unitaire} = {c.montant}</Text>
+              ))}
+              <TouchableOpacity onPress={handleSubmit} style={[styles.button, { marginTop: 10 }]}>
+                <Text style={styles.buttonText}>Envoyer la commande</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </ScrollView>
       ) : (
-        <ScrollView horizontal contentContainerStyle={{ flexGrow: 1 }}>
-          <View style={styles.tableContainer}>
-            <View style={[styles.row, styles.tableHeader]}>
-              <Text style={[styles.cell, styles.headerText, { width: 180 , textAlign: 'left' }]}>Client</Text>
-              <Text style={[styles.cell, styles.headerText, { width: 220 }]}>Produit</Text>
-              <Text style={[styles.cell, styles.headerText, { width: 100 }]}>Quantité</Text>
-              <Text style={[styles.cell, styles.headerText, { width: 100 }]}>Date</Text>
-              <Text style={[styles.cell, styles.headerText, { width: 100 }]}>BL N°</Text>
-              <Text style={[styles.cell, styles.headerText, { width: 120 }]}>Montant</Text>
+        // Commandes passées
+        <ScrollView horizontal style={{ flex: 1 }}>
+          <View style={{ flex: 1, minWidth: 1000 }}>
+            <View style={[styles.row, { backgroundColor: '#2563eb' }]}>
+              <Text style={[styles.cell, { width:100 , color: '#fff', fontWeight: 'bold' }]}>Client</Text>
+              <Text style={[styles.cell, { width:350 , color: '#fff', fontWeight: 'bold' }]}>Produit</Text>
+              <Text style={[styles.cell, { width:100 , color: '#fff', fontWeight: 'bold' }]}>Qté / m</Text>
+              <Text style={[styles.cell, { width:100 , color: '#fff', fontWeight: 'bold' }]}>PU</Text>
+              <Text style={[styles.cell, { width:100 , color: '#fff', fontWeight: 'bold' }]}>Montant</Text>
             </View>
             <FlatList
-              data={commandes}
-              keyExtractor={(item, index) => index.toString()}
-              renderItem={renderItem}
-              ListEmptyComponent={
-                <View style={{ padding: 20, alignItems: 'center' }}>
-                  <Text style={{ color: '#1e40af', fontSize: 16 }}>Aucune commande pour le moment.</Text>
-                </View>
-              }
-              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563eb']} />}
+              data={commandesPassees}
+              keyExtractor={(item, i) => i.toString()}
+              renderItem={renderCommande}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             />
           </View>
         </ScrollView>
@@ -242,33 +263,18 @@ const CommandesScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f7fb' },
-  header: { padding: 16 , paddingTop: 40 },
-  headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-
-  tabContainer: { flexDirection: 'row', margin: 12 },
-  tabButton: { flexDirection: 'row', flex: 1, backgroundColor: '#e0e7ff', padding: 12, alignItems: 'center', justifyContent: 'center', marginRight: 6, borderRadius: 30 },
-  activeTab: { backgroundColor: '#2563eb' },
-  tabText: { color: '#2563eb', fontWeight: 'bold' },
-  activeTabText: { color: 'white' },
-
-  card: { backgroundColor: '#ffffff', padding: 18, borderRadius: 18, shadowColor: '#000', shadowOffset: {width:0, height:4}, shadowOpacity:0.08, shadowRadius:12, margin: 12 },
-  label: { fontWeight: '600', marginBottom: 6, color: '#1e3a8a', fontSize: 15 },
-  dropdown: { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1', borderRadius: 14, marginBottom: 14, paddingHorizontal: 10 },
-  dropdownContainer: { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1', borderRadius: 14 },
-  stockBox: { marginVertical: 12, backgroundColor: '#e0f2fe', padding: 14, borderRadius: 14 },
-  stockText: { fontSize: 14, color: '#1e40af' },
-  input: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 14, padding: 14, marginBottom: 14, backgroundColor: '#f8fafc', fontSize: 15 },
-  submitButton: { flexDirection: 'row', backgroundColor: '#1e40af', padding: 14, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 30 },
-  submitText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
-
-  tableContainer: { minWidth: 820, borderRadius: 8, margin: 12 },
-  row: { flexDirection: 'row', paddingVertical: 12, paddingHorizontal: 8, alignItems: 'center', borderBottomWidth: 1, borderColor: '#e5e7eb' },
-  rowEven: { backgroundColor: '#fff' },
-  rowOdd: { backgroundColor: '#f9fafc' },
-  tableHeader: { backgroundColor: '#1e3a8a', borderTopLeftRadius: 8, borderTopRightRadius: 8 },
-  cell: { fontSize: 14, color: '#374151', textAlign: 'center' },
-  headerText: { color: '#fff', fontWeight: '700' },
+  header: { padding: 16, paddingTop: 20, marginBottom: 10 },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
+  tabContainer: { flexDirection: "row", marginTop: 10 },
+  tab: { flex: 1, padding: 12, alignItems: "center", borderBottomWidth: 2, borderColor: "#ccc" },
+  activeTab: { borderColor: "#2563eb" },
+  tabText: { color: "#555" },
+  activeTabText: { color: "#2563eb", fontWeight: "bold" },
+  input: { backgroundColor: "#fff", padding: 10, borderRadius: 8, marginBottom: 10 },
+  button: { backgroundColor: "#2563eb", padding: 12, borderRadius: 8 },
+  buttonText: { color: "#fff", fontWeight: "bold", textAlign: "center" },
+  row: { flexDirection: "row", backgroundColor: "#e0f2fe", padding: 8, marginVertical: 2, marginHorizontal: 0},
+  cell: { textAlign: "center" },
 });
 
 export default CommandesScreen;

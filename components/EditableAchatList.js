@@ -213,7 +213,7 @@ const AchatsScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex:1, backgroundColor:'#f5f7fb' },
-  header:{ padding:16, paddingTop:40 },
+  header:{ padding:16, paddingTop:20 },
   headerTitle:{ fontSize:24, fontWeight:'bold', color:'#fff' },
   row:{ flexDirection:'row', alignItems:'center', paddingVertical:10, paddingHorizontal:8 },
   rowEven:{ backgroundColor:'#fff' },
