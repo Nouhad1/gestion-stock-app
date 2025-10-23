@@ -10,10 +10,13 @@
     "runtimeVersion": "1.0.3",
     "extra": {
       "eas": {
-        "projectId": "05296a92-0098-48a2-90ea-4209473ebf7d"
+        "projectId": "646c42a7-d54b-4069-85c7-e5f04d593c39"
       }
     },
-    "platforms": ["android", "ios"],
+    "platforms": [
+      "android",
+      "ios"
+    ],
     "android": {
       "package": "com.bluestreck.gestionstock",
       "versionCode": 32,
@@ -43,6 +46,6 @@
       "fallbackToCacheTimeout": 1,
       "url": "https://u.expo.dev/05296a92-0098-48a2-90ea-4209473ebf7d"
     },
-    "owner": "nouhad"
+    "owner": "elhoub"
   }
 }
