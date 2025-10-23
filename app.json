@@ -18,7 +18,7 @@
       "ios"
     ],
     "android": {
-      "package": "com.bluestreck.gestionstock",
+      "package": "com.bluestreckltd.gestionstock",
       "versionCode": 6,
       "icon": "./assets/logo-modified.png",
       "adaptiveIcon": {
@@ -27,7 +27,7 @@
       }
     },
     "ios": {
-      "bundleIdentifier": "com.bluestreck.gestionstock",
+      "bundleIdentifier": "com.bluestreckltd.gestionstock",
       "buildNumber": "1.0.3",
       "supportsTablet": true,
       "infoPlist": {
