@@ -1,4 +1,4 @@
-package com.bluestreck.gestionstock
+package com.bluestreckltdapp.gestionstock
 
 import android.app.Application
 import android.content.res.Configuration
