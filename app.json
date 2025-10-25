@@ -19,7 +19,7 @@
     ],
     "android": {
       "package": "com.bluestreck.gestionstock",
-      "versionCode": 8,
+      "versionCode": 32,
       "icon": "./assets/logo-modified.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo-modified.png",
