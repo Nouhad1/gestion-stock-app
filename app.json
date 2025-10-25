@@ -46,10 +46,6 @@
       "fallbackToCacheTimeout": 1,
       "url": "https://u.expo.dev/05296a92-0098-48a2-90ea-4209473ebf7d"
     },
-
-    "sha256_cert_fingerprints":
-        ["C9:6D:27:25:92:6D:50:EF:1E:BB:CF:7D:E7:C9:A9:86:10:27:CA:83:57:71:8B:23:41:7F:60:91:13:51:1D:BC"],
-
     "owner": "nouhad"
   }
 }
