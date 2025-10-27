@@ -55,6 +55,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "typescript": "~5.9.2"
   }
 }
