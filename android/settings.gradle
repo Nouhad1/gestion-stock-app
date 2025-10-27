@@ -3,6 +3,16 @@ pluginManagement {
         mavenCentral()
         google()
         gradlePluginPortal()
+        maven { url "$rootDir/../node_modules/react-native/android" }
+        maven { url "$rootDir/../node_modules/expo-modules-core/android/maven" }
+        maven { url "$rootDir/../node_modules/expo-updates/android" }
+    }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "com.facebook.react") {
+                useModule("com.facebook.react:react-native-gradle-plugin:0.74.3")
+            }
+        }
     }
 }
 
@@ -11,8 +21,14 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven { url "$rootDir/../node_modules/react-native/android" }
+        maven { url "$rootDir/../node_modules/jsc-android/dist" }
+        maven { url "$rootDir/../node_modules/expo-modules-core/android/maven" }
+        maven { url "$rootDir/../node_modules/expo-updates/android" }
     }
 }
 
 rootProject.name = "Gestion Stock"
 include(":app")
+apply(from: file("../node_modules/react-native-unimodules/gradle.groovy"))
+
