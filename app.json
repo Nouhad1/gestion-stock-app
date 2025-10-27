@@ -46,6 +46,9 @@
       "fallbackToCacheTimeout": 1,
       "url": "https://u.expo.dev/05296a92-0098-48a2-90ea-4209473ebf7d"
     },
-    "owner": "nouhad"
+    "owner": "nouhad",
+    "plugins": [
+      "expo-font"
+    ]
   }
 }
