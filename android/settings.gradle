@@ -7,14 +7,6 @@ pluginManagement {
         maven { url("$rootDir/../node_modules/expo-modules-core/android/maven") }
         maven { url("$rootDir/../node_modules/expo-updates/android") }
     }
-    resolutionStrategy {
-        eachPlugin {
-            if (requested.id.id == "com.facebook.react") {
-    useModule("com.facebook.react:react-native-gradle-plugin:0.81.5")
-}
-
-        }
-    }
 }
 
 dependencyResolutionManagement {
@@ -28,6 +20,7 @@ dependencyResolutionManagement {
         maven { url("$rootDir/../node_modules/expo-updates/android") }
     }
 }
+
 
 rootProject.name = "Gestion Stock"
 include(":app")
