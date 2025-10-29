@@ -10,7 +10,8 @@ import {
   TouchableOpacity,
   RefreshControl
 } from 'react-native';
-import DropDownPicker from 'react-native-dropdown-picker';
+//import DropDownPicker from 'react-native-dropdown-picker';
+import { Picker } from '@react-native-picker/picker';
 import { LineChart } from 'react-native-chart-kit';
 import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';

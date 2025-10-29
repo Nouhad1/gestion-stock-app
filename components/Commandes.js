@@ -13,8 +13,9 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
-import DropDownPicker from "react-native-dropdown-picker";
+//import DropDownPicker from "react-native-dropdown-picker";
 import axios from "axios";
+import { Picker } from '@react-native-picker/picker';
 
 const CommandesScreen = () => {
   const [activeTab, setActiveTab] = useState("nouvelle");
