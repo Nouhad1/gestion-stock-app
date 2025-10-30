@@ -1,4 +1,4 @@
-package com.bluestreck.gestionstock
+package com.bluestreck.gestionstock.app
 
 import android.os.Build
 import android.os.Bundle
