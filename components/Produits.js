@@ -130,7 +130,7 @@ export default function ProductTable() {
       {/* Sélecteur de dépôt */}
       <Picker
         selectedValue={selectedDepot}
-        style={styles.picker}
+        style={[styles.picker, { color: '#000' }]}
         onValueChange={(itemValue) => setSelectedDepot(itemValue)}
       >
         <Picker.Item label="Dépôt Hay Mohemmadi" value="depot1" />

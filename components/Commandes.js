@@ -197,7 +197,7 @@ const CommandesScreen = () => {
                 />
                 {/* CLIENT */}
                 <View style={{ zIndex: 1000 }}>
-                  <DropDownPicker
+                  <Picker
                     open={openClient}
                     value={clientId}
                     items={clients}
@@ -213,7 +213,7 @@ const CommandesScreen = () => {
                 </View>
                 {/* PRODUIT */}
                 <View style={{ zIndex: 900 }}>
-                  <DropDownPicker
+                  <Picker
                     open={openProduit}
                     value={produitRef}
                     items={produits}
