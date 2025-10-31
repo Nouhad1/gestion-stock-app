@@ -151,7 +151,7 @@ const HomeScreen = () => {
       </LinearGradient>
 
       <View style={{ margin: 10, zIndex: 1000 }}>
-        <DropDownPicker
+        <Picker
           open={openYear}
           value={selectedYear}
           items={yearList.map(y => ({ label: y.toString(), value: y }))}
