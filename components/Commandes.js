@@ -10,12 +10,12 @@ import {
   RefreshControl,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
-//import DropDownPicker from "react-native-dropdown-picker";
 import axios from "axios";
-import { Picker } from '@react-native-picker/picker';
+import { Picker } from "@react-native-picker/picker";
 
 const CommandesScreen = () => {
   const [activeTab, setActiveTab] = useState("nouvelle");
@@ -36,15 +36,14 @@ const CommandesScreen = () => {
   const [commandesPassees, setCommandesPassees] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [openClient, setOpenClient] = useState(false);
-  const [openProduit, setOpenProduit] = useState(false);
-
   const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
 
   useEffect(() => {
+    // Clients
     axios.get(`${API_URL}/clients`).then((res) =>
       setClients(res.data.map((c) => ({ label: c.nom, value: c.id })))
     );
+    // Produits
     axios.get(`${API_URL}/produits`).then((res) =>
       setProduits(
         res.data.map((p) => ({
@@ -62,9 +61,10 @@ const CommandesScreen = () => {
   const fetchCommandes = useCallback(async () => {
     try {
       const res = await axios.get(`${API_URL}/commandes`);
+      console.log("📦 Commandes reçues :", JSON.stringify(res.data, null, 2));
       setCommandesPassees(res.data || []);
     } catch (err) {
-      console.error(err);
+      console.error("❌ Erreur fetchCommandes:", err);
       setCommandesPassees([]);
     }
   }, []);
@@ -134,16 +134,25 @@ const CommandesScreen = () => {
   };
 
   const renderCommande = ({ item }) => {
-    const client = item.nom_client || item.client_id || "-";
-    const produit = item.designation_produit || item.produit_reference || "-";
-    const quantite = item.quantite_commande || item.metres_commandees || "-";
-    const prixUnitaire = item.prix_unitaire != null ? parseFloat(item.prix_unitaire).toFixed(2) : "-";
-    const montant = item.montant != null ? parseFloat(item.montant).toFixed(2) : "-";
+    const client =
+      item.nom_client || item.client_nom || item.client || item.client_id || "-";
+    const produit =
+      item.designation_produit || item.produit_nom || item.produit_reference || "-";
+    const quantite =
+      item.quantite_commande ??
+      item.metres_commandees ??
+      item.quantite ??
+      item.metres ??
+      "-";
+    const prixUnitaire =
+      item.prix_unitaire ?? item.prix ?? item.pu ?? "-";
+    const montant =
+      item.montant ?? item.total ?? item.prix_total ?? "-";
 
     return (
       <View style={styles.row}>
-        <Text style={[styles.cell, { width: 100 }]}>{client}</Text>
-        <Text style={[styles.cell, { width: 350 }]}>{produit}</Text>
+        <Text style={[styles.cell, { width: 120 }]}>{client}</Text>
+        <Text style={[styles.cell, { width: 250 }]}>{produit}</Text>
         <Text style={[styles.cell, { width: 100 }]}>{quantite}</Text>
         <Text style={[styles.cell, { width: 100 }]}>{prixUnitaire}</Text>
         <Text style={[styles.cell, { width: 100 }]}>{montant}</Text>
@@ -195,36 +204,33 @@ const CommandesScreen = () => {
                   onChangeText={setBlNum}
                   style={styles.input}
                 />
+
                 {/* CLIENT */}
-                <View style={{ zIndex: 1000 }}>
+                <Text style={styles.label}>Client</Text>
+                <View style={styles.pickerContainer}>
                   <Picker
-                    open={openClient}
-                    value={clientId}
-                    items={clients}
-                    setOpen={setOpenClient}
-                    setValue={setClientId}
-                    placeholder="Sélectionner un client"
-                    dropDownDirection="TOP"
-                    listMode="MODAL"
-                    searchable={true}
-                    searchPlaceholder="Rechercher un client..."
-                    containerStyle={{ marginBottom: 12 }}
-                  />
+                    selectedValue={clientId}
+                    onValueChange={(value) => setClientId(value)}
+                  >
+                    <Picker.Item label="Sélectionner un client" value={null} />
+                    {clients.map((c) => (
+                      <Picker.Item key={c.value} label={c.label} value={c.value} />
+                    ))}
+                  </Picker>
                 </View>
+
                 {/* PRODUIT */}
-                <View style={{ zIndex: 900 }}>
+                <Text style={styles.label}>Produit</Text>
+                <View style={styles.pickerContainer}>
                   <Picker
-                    open={openProduit}
-                    value={produitRef}
-                    items={produits}
-                    setOpen={setOpenProduit}
-                    setValue={setProduitRef}
-                    placeholder="Sélectionner un produit"
-                    listMode="MODAL"
-                    searchable={true}
-                    searchPlaceholder="Rechercher un produit..."
-                    containerStyle={{ marginBottom: 12 }}
-                  />
+                    selectedValue={produitRef}
+                    onValueChange={(value) => setProduitRef(value)}
+                  >
+                    <Picker.Item label="Sélectionner un produit" value={null} />
+                    {produits.map((p) => (
+                      <Picker.Item key={p.value} label={p.label} value={p.value} />
+                    ))}
+                  </Picker>
                 </View>
 
                 {isLaniere ? (
@@ -286,22 +292,27 @@ const CommandesScreen = () => {
         </KeyboardAvoidingView>
       ) : (
         // Commandes passées
-        <View style={{ flex: 1 }}>
-          <View style={[styles.row, { backgroundColor: "#2563eb" }]}>
-            <Text style={[styles.cell, { width: 100, color: "#fff", fontWeight: "bold" }]}>Client</Text>
-            <Text style={[styles.cell, { width: 350, color: "#fff", fontWeight: "bold" }]}>Produit</Text>
-            <Text style={[styles.cell, { width: 100, color: "#fff", fontWeight: "bold" }]}>Qté / m</Text>
-            <Text style={[styles.cell, { width: 100, color: "#fff", fontWeight: "bold" }]}>PU</Text>
-            <Text style={[styles.cell, { width: 100, color: "#fff", fontWeight: "bold" }]}>Montant</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={{ flex: 1 }}>
+            {/* HEADER */}
+            <View style={[styles.row, { backgroundColor: "#2563eb" }]}>
+              <Text style={[styles.cell, { width: 120, color: "#fff", fontWeight: "bold" }]}>Client</Text>
+              <Text style={[styles.cell, { width: 250, color: "#fff", fontWeight: "bold" }]}>Produit</Text>
+              <Text style={[styles.cell, { width: 100, color: "#fff", fontWeight: "bold" }]}>Qté / m</Text>
+              <Text style={[styles.cell, { width: 100, color: "#fff", fontWeight: "bold" }]}>PU</Text>
+              <Text style={[styles.cell, { width: 100, color: "#fff", fontWeight: "bold" }]}>Montant</Text>
+            </View>
+
+            {/* LIGNES */}
+            <FlatList
+              data={commandesPassees}
+              keyExtractor={(item, i) => i.toString()}
+              renderItem={renderCommande}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+              showsVerticalScrollIndicator={false}
+            />
           </View>
-          <FlatList
-            data={commandesPassees}
-            keyExtractor={(item, i) => i.toString()}
-            renderItem={renderCommande}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-            showsVerticalScrollIndicator={false}
-          />
-        </View>
+        </ScrollView>
       )}
     </SafeAreaView>
   );
@@ -320,7 +331,9 @@ const styles = StyleSheet.create({
   button: { backgroundColor: "#2563eb", padding: 12, borderRadius: 8 },
   buttonText: { color: "#fff", fontWeight: "bold", textAlign: "center" },
   row: { flexDirection: "row", backgroundColor: "#e0f2fe", padding: 8, marginVertical: 2, marginHorizontal: 0 },
-  cell: { textAlign: "center" },
+  cell: { textAlign: "center", paddingHorizontal: 4 },
+  label: { fontWeight: "bold", color: "#2563eb", marginBottom: 6, marginTop: 10 },
+  pickerContainer: { backgroundColor: "#fff", borderRadius: 8, marginBottom: 10 },
 });
 
 export default CommandesScreen;
