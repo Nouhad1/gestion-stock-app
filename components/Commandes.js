@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
   activeTab: { borderColor: "#2563eb" },
   tabText: { color: "#555" },
   activeTabText: { color: "#2563eb", fontWeight: "bold" },
-  input: { backgroundColor: "#fff", padding: 10, borderRadius: 8, marginBottom: 10 },
+  input: { backgroundColor: "#fff", padding: 10, borderRadius: 8, marginBottom: 10 , color:"#555"},
   button: { backgroundColor: "#2563eb", padding: 12, borderRadius: 8 },
   buttonText: { color: "#fff", fontWeight: "bold", textAlign: "center" },
   row: { flexDirection: "row", backgroundColor: "#e0f2fe", padding: 8, marginVertical: 2, marginHorizontal: 0 },
