@@ -191,7 +191,7 @@ const CommandesScreen = () => {
                   >
                     <Picker.Item label="Sélectionner un client" value={null} color="#555" />
                     {clients.map((c) => (
-                      <Picker.Item key={c.value} label={c.label} value={c.value} color="#000" />
+                      <Picker.Item key={c.value} label={c.label} value={c.value}  />
                     ))}
                   </Picker>
                 </View>
@@ -206,7 +206,7 @@ const CommandesScreen = () => {
                   >
                     <Picker.Item label="Sélectionner un produit" value={null} color="#555" />
                     {produits.map((p) => (
-                      <Picker.Item key={p.value} label={p.label} value={p.value} color="#000" />
+                      <Picker.Item key={p.value} label={p.label} value={p.value} />
                     ))}
                   </Picker>
                 </View>
