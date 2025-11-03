@@ -16,7 +16,7 @@
     "platforms": ["android", "ios"],
     "android": {
       "package": "com.bluestreck.gestionstock.app",
-      "versionCode": 40,
+      "versionCode": 41,
       "icon": "./assets/logo-modified.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo-modified.png",
