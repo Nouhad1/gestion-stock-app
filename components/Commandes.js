@@ -20,7 +20,7 @@ import { Picker } from "@react-native-picker/picker";
 const CommandesScreen = () => {
   const [activeTab, setActiveTab] = useState("nouvelle");
 
-  // Formulaire
+  // États du formulaire
   const [blNum, setBlNum] = useState("");
   const [clientId, setClientId] = useState(null);
   const [produitRef, setProduitRef] = useState(null);
@@ -30,7 +30,7 @@ const CommandesScreen = () => {
   const [prixUnitaire, setPrixUnitaire] = useState("");
   const [commandesMultiple, setCommandesMultiple] = useState([]);
 
-  // Données
+  // Données de référence
   const [clients, setClients] = useState([]);
   const [produits, setProduits] = useState([]);
   const [commandesPassees, setCommandesPassees] = useState([]);
@@ -39,11 +39,11 @@ const CommandesScreen = () => {
   const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
 
   useEffect(() => {
-    // Clients
+    // Charger clients
     axios.get(`${API_URL}/clients`).then((res) =>
       setClients(res.data.map((c) => ({ label: c.nom, value: c.id })))
     );
-    // Produits
+    // Charger produits
     axios.get(`${API_URL}/produits`).then((res) =>
       setProduits(
         res.data.map((p) => ({
@@ -61,7 +61,6 @@ const CommandesScreen = () => {
   const fetchCommandes = useCallback(async () => {
     try {
       const res = await axios.get(`${API_URL}/commandes`);
-      console.log("📦 Commandes reçues :", JSON.stringify(res.data, null, 2));
       setCommandesPassees(res.data || []);
     } catch (err) {
       console.error("❌ Erreur fetchCommandes:", err);
@@ -133,59 +132,35 @@ const CommandesScreen = () => {
     }
   };
 
-  const renderCommande = ({ item }) => {
-    const client =
-      item.nom_client || item.client_nom || item.client || item.client_id || "-";
-    const produit =
-      item.designation_produit || item.produit_nom || item.produit_reference || "-";
-    const quantite =
-      item.quantite_commande ??
-      item.metres_commandees ??
-      item.quantite ??
-      item.metres ??
-      "-";
-    const prixUnitaire =
-      item.prix_unitaire ?? item.prix ?? item.pu ?? "-";
-    const montant =
-      item.montant ?? item.total ?? item.prix_total ?? "-";
-
-    return (
-      <View style={styles.row}>
-        <Text style={[styles.cell, { width: 120 }]}>{client}</Text>
-        <Text style={[styles.cell, { width: 250 }]}>{produit}</Text>
-        <Text style={[styles.cell, { width: 100 }]}>{quantite}</Text>
-        <Text style={[styles.cell, { width: 100 }]}>{prixUnitaire}</Text>
-        <Text style={[styles.cell, { width: 100 }]}>{montant}</Text>
-      </View>
-    );
-  };
+  const renderCommande = ({ item }) => (
+    <View style={styles.row}>
+      <Text style={[styles.cell, { width: 120 }]}>{item.nom_client || "-"}</Text>
+      <Text style={[styles.cell, { width: 250 }]}>{item.designation_produit || "-"}</Text>
+      <Text style={[styles.cell, { width: 100 }]}>{item.quantite_commande ?? item.metres_commandees ?? "-"}</Text>
+      <Text style={[styles.cell, { width: 100 }]}>{item.prix_unitaire ?? "-"}</Text>
+      <Text style={[styles.cell, { width: 100 }]}>{item.montant ?? "-"}</Text>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient colors={["#2563eb", "#1e40af"]} style={styles.header}>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>🧾 Gestion Commandes</Text>
-        </View>
+        <Text style={styles.headerTitle}>🧾 Gestion Commandes</Text>
       </LinearGradient>
 
       {/* Onglets */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "nouvelle" && styles.activeTab]}
-          onPress={() => setActiveTab("nouvelle")}
-        >
-          <Text style={[styles.tabText, activeTab === "nouvelle" && styles.activeTabText]}>
-            Nouvelle commande
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "passees" && styles.activeTab]}
-          onPress={() => setActiveTab("passees")}
-        >
-          <Text style={[styles.tabText, activeTab === "passees" && styles.activeTabText]}>
-            Commandes passées
-          </Text>
-        </TouchableOpacity>
+        {["nouvelle", "passees"].map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={[styles.tab, activeTab === tab && styles.activeTab]}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+              {tab === "nouvelle" ? "Nouvelle commande" : "Commandes passées"}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {activeTab === "nouvelle" ? (
@@ -200,6 +175,7 @@ const CommandesScreen = () => {
               <View style={{ padding: 12 }}>
                 <TextInput
                   placeholder="Numéro BL"
+                  placeholderTextColor="#555"
                   value={blNum}
                   onChangeText={setBlNum}
                   style={styles.input}
@@ -210,11 +186,12 @@ const CommandesScreen = () => {
                 <View style={styles.pickerContainer}>
                   <Picker
                     selectedValue={clientId}
-                    onValueChange={(value) => setClientId(value)}
+                    onValueChange={setClientId}
+                    style={{ color: "#000" }}
                   >
-                    <Picker.Item label="Sélectionner un client" value={null} />
+                    <Picker.Item label="Sélectionner un client" value={null} color="#555" />
                     {clients.map((c) => (
-                      <Picker.Item key={c.value} label={c.label} value={c.value} />
+                      <Picker.Item key={c.value} label={c.label} value={c.value} color="#000" />
                     ))}
                   </Picker>
                 </View>
@@ -224,11 +201,12 @@ const CommandesScreen = () => {
                 <View style={styles.pickerContainer}>
                   <Picker
                     selectedValue={produitRef}
-                    onValueChange={(value) => setProduitRef(value)}
+                    onValueChange={setProduitRef}
+                    style={{ color: "#000" }}
                   >
-                    <Picker.Item label="Sélectionner un produit" value={null} />
+                    <Picker.Item label="Sélectionner un produit" value={null} color="#555" />
                     {produits.map((p) => (
-                      <Picker.Item key={p.value} label={p.label} value={p.value} />
+                      <Picker.Item key={p.value} label={p.label} value={p.value} color="#000" />
                     ))}
                   </Picker>
                 </View>
@@ -237,6 +215,7 @@ const CommandesScreen = () => {
                   <>
                     <TextInput
                       placeholder="Rouleaux"
+                      placeholderTextColor="#555"
                       value={rouleaux}
                       onChangeText={setRouleaux}
                       keyboardType="numeric"
@@ -244,6 +223,7 @@ const CommandesScreen = () => {
                     />
                     <TextInput
                       placeholder="Mètres"
+                      placeholderTextColor="#555"
                       value={metres}
                       onChangeText={setMetres}
                       keyboardType="numeric"
@@ -253,19 +233,23 @@ const CommandesScreen = () => {
                 ) : (
                   <TextInput
                     placeholder="Quantité"
+                    placeholderTextColor="#555"
                     value={quantite}
                     onChangeText={setQuantite}
                     keyboardType="numeric"
                     style={styles.input}
                   />
                 )}
+
                 <TextInput
                   placeholder="Prix unitaire"
+                  placeholderTextColor="#555"
                   value={prixUnitaire}
                   onChangeText={setPrixUnitaire}
                   keyboardType="numeric"
                   style={styles.input}
                 />
+
                 <TouchableOpacity
                   onPress={handleAddProduct}
                   style={[styles.button, { backgroundColor: "#f59e0b" }]}
@@ -274,10 +258,12 @@ const CommandesScreen = () => {
                 </TouchableOpacity>
               </View>
             }
-            renderItem={({ item, index }) => (
-              <View style={{ padding: 10, backgroundColor: "#e0f2fe", margin: 4, borderRadius: 6 }}>
+            renderItem={({ item }) => (
+              <View style={styles.listItem}>
                 <Text>
-                  {item.produit_reference} : {item.quantite_commande || item.metres_commandees} × {item.prix_unitaire} = {item.montant}
+                  {item.produit_reference} :{" "}
+                  {item.quantite_commande || item.metres_commandees} × {item.prix_unitaire} ={" "}
+                  {item.montant}
                 </Text>
               </View>
             )}
@@ -294,22 +280,29 @@ const CommandesScreen = () => {
         // Commandes passées
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={{ flex: 1 }}>
-            {/* HEADER */}
             <View style={[styles.row, { backgroundColor: "#2563eb" }]}>
-              <Text style={[styles.cell, { width: 120, color: "#fff", fontWeight: "bold" }]}>Client</Text>
-              <Text style={[styles.cell, { width: 250, color: "#fff", fontWeight: "bold" }]}>Produit</Text>
-              <Text style={[styles.cell, { width: 100, color: "#fff", fontWeight: "bold" }]}>Qté / m</Text>
-              <Text style={[styles.cell, { width: 100, color: "#fff", fontWeight: "bold" }]}>PU</Text>
-              <Text style={[styles.cell, { width: 100, color: "#fff", fontWeight: "bold" }]}>Montant</Text>
+              {["Client", "Produit", "Qté / m", "PU", "Montant"].map((title, i) => (
+                <Text
+                  key={i}
+                  style={[
+                    styles.cell,
+                    {
+                      width: [120, 250, 100, 100, 100][i],
+                      color: "#fff",
+                      fontWeight: "bold",
+                    },
+                  ]}
+                >
+                  {title}
+                </Text>
+              ))}
             </View>
 
-            {/* LIGNES */}
             <FlatList
               data={commandesPassees}
               keyExtractor={(item, i) => i.toString()}
               renderItem={renderCommande}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-              showsVerticalScrollIndicator={false}
             />
           </View>
         </ScrollView>
@@ -327,13 +320,20 @@ const styles = StyleSheet.create({
   activeTab: { borderColor: "#2563eb" },
   tabText: { color: "#555" },
   activeTabText: { color: "#2563eb", fontWeight: "bold" },
-  input: { backgroundColor: "#fff", padding: 10, borderRadius: 8, marginBottom: 10 , color:"#555"},
+  input: {
+    backgroundColor: "#fff",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 10,
+    color: "#000",
+  },
   button: { backgroundColor: "#2563eb", padding: 12, borderRadius: 8 },
   buttonText: { color: "#fff", fontWeight: "bold", textAlign: "center" },
-  row: { flexDirection: "row", backgroundColor: "#e0f2fe", padding: 8, marginVertical: 2, marginHorizontal: 0 },
+  row: { flexDirection: "row", backgroundColor: "#e0f2fe", padding: 8, marginVertical: 2 },
   cell: { textAlign: "center", paddingHorizontal: 4 },
   label: { fontWeight: "bold", color: "#2563eb", marginBottom: 6, marginTop: 10 },
   pickerContainer: { backgroundColor: "#fff", borderRadius: 8, marginBottom: 10 },
+  listItem: { padding: 10, backgroundColor: "#e0f2fe", margin: 4, borderRadius: 6 },
 });
 
 export default CommandesScreen;
