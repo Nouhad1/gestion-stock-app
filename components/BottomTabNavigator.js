@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/FontAwesome5';
-import { View } from 'react-native';
+import { Platform } from 'react-native';
 
 import HomeScreen from './HomeScreen';
 import Achats from './EditableAchatList';
@@ -17,67 +17,81 @@ export default function BottomTabNavigator() {
         headerShown: false,
         tabBarActiveTintColor: '#2280B0',
         tabBarInactiveTintColor: '#999',
+        tabBarLabelPosition: 'below-icon',
+        tabBarAllowFontScaling: false, // 🔒 Empêche zoom iPad
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
+          backgroundColor: '#ffffff',
           height: 60,
-          shadowColor: '#000',
-          shadowOpacity: 0.1,
-          shadowOffset: { width: 0, height: -3 },
-          shadowRadius: 5,
-          elevation: 5,
         },
-        tabBarLabelStyle: { fontSize: 10, marginBottom: 4 },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          marginBottom: Platform.OS === 'ios' ? 2 : 0,
+        },
       }}
     >
+      {/* Accueil */}
       <Tab.Screen
         name="Home"
         component={HomeScreen}
         options={{
           tabBarLabel: 'Accueil',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="home" color={color} size={size} />
+          tabBarIcon: ({ color, focused }) => (
+            <Icon
+              name="home"
+              color={color}
+              size={focused ? 20 : 18}
+            />
           ),
         }}
       />
 
+      {/* Produits */}
       <Tab.Screen
         name="Produits"
         component={Produits}
         options={{
           tabBarLabel: 'Produits',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="box" color={color} size={size} />
+          tabBarIcon: ({ color, focused }) => (
+            <Icon
+              name="box"
+              color={color}
+              size={focused ? 20 : 18}
+            />
           ),
         }}
       />
 
+      {/* Commandes */}
       <Tab.Screen
         name="Commandes"
         component={Commandes}
         options={{
           tabBarLabel: 'Commandes',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="shopping-cart" color={color} size={size} />
+          tabBarIcon: ({ color, focused }) => (
+            <Icon
+              name="shopping-cart"
+              color={color}
+              size={focused ? 20 : 18}
+            />
           ),
         }}
       />
 
+      {/* ✅ Achats — CORRIGÉ */}
       <Tab.Screen
-  name="Achats"
-  component={Achats}
-  options={{
-    tabBarLabel: 'Achats',
-    tabBarIcon: ({ color, size }) => (
-      <View style={{ flexDirection: 'row' }}>
-        <Icon name="arrow-down" color={color} size={size} />
-        <Icon name="arrow-up" color={color} size={size} style={{ marginLeft: 4 }} />
-      </View>
-    ),
-  }}
-/>
-
+        name="Achats"
+        component={Achats}
+        options={{
+          tabBarLabel: 'Achats',
+          tabBarIcon: ({ color, focused }) => (
+            <Icon
+              name="exchange-alt"   // ✅ icône unique Apple-friendly
+              color={color}
+              size={focused ? 20 : 18}
+            />
+          ),
+        }}
+      />
     </Tab.Navigator>
   );
 }
