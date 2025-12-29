@@ -33,10 +33,10 @@
    "entitlements": {}
     },
     "web": {
-      "favicon": "./assets/icone.png"
+      "favicon": "./assets/logo-modified.png"
     },
     "splash": {
-      "image": "./assets/icone.png",
+      "image": "./assets/logo-modified.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
