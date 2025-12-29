@@ -6,19 +6,20 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  ScrollView,
+  TextInput,
 } from 'react-native';
 import axios from 'axios';
 import { SafeAreaView } from 'react-native-safe-area-context';
-//import { Picker } from '@react-native-picker/picker';
-import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import SegmentedControl from '@react-native-segmented-control/segmented-control';
 
 const API_URL = 'https://gestion-stock-app-production.up.railway.app/api/produits';
 
 export default function ProductTable() {
   const [produits, setProduits] = useState([]);
+  const [filteredProduits, setFilteredProduits] = useState([]);
   const [selectedDepot, setSelectedDepot] = useState('depot1');
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -26,6 +27,7 @@ export default function ProductTable() {
     try {
       const res = await axios.get(API_URL);
       setProduits(res.data);
+      setFilteredProduits(res.data);
     } catch (err) {
       console.error('Erreur API produits:', err.message);
     } finally {
@@ -38,25 +40,33 @@ export default function ProductTable() {
     fetchProduits();
   }, []);
 
+  // Filtrage recherche
+  useEffect(() => {
+    const text = search.toLowerCase();
+    const filtered = produits.filter(
+      (item) =>
+        item.reference?.toLowerCase().includes(text) ||
+        item.designation?.toLowerCase().includes(text)
+    );
+    setFilteredProduits(filtered);
+  }, [search, produits]);
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchProduits();
   };
 
-  // Fonction pour afficher l'état du stock
+  // Disponibilité stock
   const renderAvailability = (stockQty) => {
-    let status = '';
-    let style = {};
+    let status = 'Rupture';
+    let style = styles.outOfStock;
 
     if (stockQty > 3) {
       status = 'Dispo';
       style = styles.inStock;
-    } else if (stockQty > 0 && stockQty <= 3) {
+    } else if (stockQty > 0) {
       status = 'Faible';
       style = styles.lowStock;
-    } else {
-      status = 'Rupture';
-      style = styles.outOfStock;
     }
 
     return (
@@ -66,47 +76,23 @@ export default function ProductTable() {
     );
   };
 
-  // Ligne du tableau
+  // Ligne produit
   const renderItem = ({ item, index }) => {
     const stockDepot1 = Number(item.quantite_stock || 0);
     const stockDepot2 = Number(item.quantite_stock_2 || 0);
+    const stockSelected =
+      selectedDepot === 'depot1' ? stockDepot1 : stockDepot2;
     const quantiteGlobale = stockDepot1 + stockDepot2;
-    const stockSelected = selectedDepot === 'depot1' ? stockDepot1 : stockDepot2;
-
-    const prixUnitaire =
-      item.prix_unitaire != null && !isNaN(item.prix_unitaire)
-        ? Number(item.prix_unitaire).toFixed(2)
-        : '-';
-    const prixMoyen =
-      item.prix_moyen_achat != null && !isNaN(item.prix_moyen_achat)
-        ? Number(item.prix_moyen_achat).toFixed(2)
-        : '-';
 
     return (
       <View style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
         <Text style={[styles.cell, { width: 100 }]}>{item.reference}</Text>
-        <Text
-          style={[
-            styles.cell,
-            {
-              width: 400,
-              textAlign: 'center',
-              textAlignVertical: 'center',
-              flexWrap: 'wrap',
-            },
-          ]}
-        >
-          {item.designation}
-        </Text>
+        <Text style={[styles.cell, { width: 400 }]}>{item.designation}</Text>
         <Text style={[styles.cell, { width: 150 }]}>{stockSelected}</Text>
         <Text style={[styles.cell, { width: 80 }]}>{quantiteGlobale}</Text>
-        <Text style={[styles.cell, { width: 120 }]}>
-          {prixUnitaire !== '-' ? `${prixUnitaire} MAD` : '-'}
-        </Text>
-        <Text style={[styles.cell, { width: 120 }]}>
-          {prixMoyen !== '-' ? `${prixMoyen} MAD` : '-'}
-        </Text>
-        <View style={[styles.cell, { width: 100 }]}>{renderAvailability(stockSelected)}</View>
+        <View style={[styles.cell, { width: 100 }]}>
+          {renderAvailability(stockSelected)}
+        </View>
       </View>
     );
   };
@@ -122,63 +108,93 @@ export default function ProductTable() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Titre */}
+      {/* Header */}
       <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.header}>
         <Text style={styles.headerTitle}>📦 Liste des Produits</Text>
       </LinearGradient>
 
-      {/* Sélecteur de dépôt */}
-      <Picker
-        selectedValue={selectedDepot}
-        style={[styles.picker, { color: '#000' }]}
-        onValueChange={(itemValue) => setSelectedDepot(itemValue)}
-      >
-        <Picker.Item label="Dépôt Hay Mohemmadi" value="depot1" />
-        <Picker.Item label="Dépôt Had Soualem" value="depot2" />
-      </Picker>
+      {/* SegmentedControl dépôt */}
+      <View style={styles.segmentContainer}>
+        <SegmentedControl
+          values={['Hay Mohemmadi', 'Had Soualem']}
+          selectedIndex={selectedDepot === 'depot1' ? 0 : 1}
+          onChange={(e) => {
+            const index = e.nativeEvent.selectedSegmentIndex;
+            setSelectedDepot(index === 0 ? 'depot1' : 'depot2');
+          }}
+          tintColor="#2563eb"
+          backgroundColor="#e5e7eb"
+          fontStyle={{ fontSize: 14 }}
+          activeFontStyle={{ fontWeight: 'bold' }}
+        />
+      </View>
 
-      {/* Scroll horizontal */}
-      <ScrollView horizontal>
-        <View>
-          {/* Header */}
-          <View style={[styles.row, styles.headerRow]}>
-            <Text style={[styles.headerCell, { width: 100 }]}>Référence</Text>
-            <Text style={[styles.headerCell, { width: 400 }]}>Désignation</Text>
-            <Text style={[styles.headerCell, { width: 150 }]}>
-              {selectedDepot === 'depot1' ? 'Dépôt Hay Mohemmadi' : 'Dépôt Had Soualem'}
-            </Text>
-            <Text style={[styles.headerCell, { width: 80 }]}>Global</Text>
-            <Text style={[styles.headerCell, { width: 120 }]}>Prix Unitaire</Text>
-            <Text style={[styles.headerCell, { width: 120 }]}>Prix Moyen Achat</Text>
-            <Text style={[styles.headerCell, { width: 100 }]}>Dispo</Text>
-          </View>
+      {/* Recherche */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          placeholder="🔍 Rechercher par référence ou désignation"
+          value={search}
+          onChangeText={setSearch}
+          style={styles.searchInput}
+          clearButtonMode="while-editing"
+        />
+      </View>
 
-          <FlatList
-            data={produits}
-            keyExtractor={(item) => item.reference}
-            renderItem={renderItem}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#2563eb']} />
-            }
+      {/* En-tête tableau */}
+      <View style={[styles.row, styles.headerRow]}>
+        <Text style={[styles.headerCell, { width: 100 }]}>Référence</Text>
+        <Text style={[styles.headerCell, { width: 400 }]}>Désignation</Text>
+        <Text style={[styles.headerCell, { width: 150 }]}>
+          {selectedDepot === 'depot1'
+            ? 'Dépôt Hay Mohemmadi'
+            : 'Dépôt Had Soualem'}
+        </Text>
+        <Text style={[styles.headerCell, { width: 80 }]}>Global</Text>
+        <Text style={[styles.headerCell, { width: 100 }]}>Dispo</Text>
+      </View>
+
+      {/* Liste */}
+      <FlatList
+        data={filteredProduits}
+        keyExtractor={(item) => item.reference}
+        renderItem={renderItem}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#2563eb']}
           />
-        </View>
-      </ScrollView>
+        }
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f7fb' },
-  header: { padding: 16, paddingTop: 20, marginBottom: 10 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff'},
-  picker: {
-    height: 50,
-    width: '100%',
-    marginBottom: 10,
-    alignSelf: 'center',
+
+  header: { padding: 16 },
+  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
+
+  segmentContainer: {
+    marginHorizontal: 16,
+    marginVertical: 10,
+  },
+
+  searchContainer: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+  },
+  searchInput: {
     backgroundColor: '#fff',
     borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    fontSize: 14,
   },
+
   row: {
     flexDirection: 'row',
     borderBottomWidth: 1,
@@ -189,17 +205,31 @@ const styles = StyleSheet.create({
   rowEven: { backgroundColor: '#fff' },
   rowOdd: { backgroundColor: '#f9f9f9' },
   headerRow: { backgroundColor: '#2563eb' },
+
   cell: {
     paddingHorizontal: 6,
     color: '#111',
     textAlign: 'center',
-    textAlignVertical: 'center',
   },
-  headerCell: { paddingHorizontal: 6, fontWeight: 'bold', color: '#fff', textAlign: 'center' },
-  availability: { paddingVertical: 4, paddingHorizontal: 6, borderRadius: 12 },
+  headerCell: {
+    paddingHorizontal: 6,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+  },
+
+  availability: {
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
   inStock: { backgroundColor: '#d1fae5' },
   lowStock: { backgroundColor: '#fef3c7' },
   outOfStock: { backgroundColor: '#fee2e2' },
   availabilityText: { fontWeight: 'bold', textAlign: 'center' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

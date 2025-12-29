@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "Gestion Stock",
+    "name": "Gestion Stock Pro",
     "slug": "gestion-stock",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/logo-modified.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "runtimeVersion": "1.0.3",
+    "runtimeVersion": "1.0.4",
     "extra": {
       "eas": {
         "projectId": "646c42a7-d54b-4069-85c7-e5f04d593c39"
@@ -25,7 +25,7 @@
     },
     "ios": {
   "bundleIdentifier": "com.bluestreck.gestionstock.app",
-  "buildNumber": "6",
+  "buildNumber": "8",
   "supportsTablet": true,
   "infoPlist": {
     "ITSAppUsesNonExemptEncryption": false
@@ -33,10 +33,10 @@
    "entitlements": {}
     },
     "web": {
-      "favicon": "./assets/logo-modified.png"
+      "favicon": "./assets/icone.png"
     },
     "splash": {
-      "image": "./assets/logo-modified.png",
+      "image": "./assets/icone.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
