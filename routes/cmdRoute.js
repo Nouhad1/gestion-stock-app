@@ -42,6 +42,9 @@ router.post('/', (req, res) => {
         if (qMetres > qteMaxMetres) {
           return res.status(400).json({ message: `La quantité demandée (${qMetres} m) dépasse le stock disponible (${qteMaxMetres} m).` });
         }
+        if (qRouleaux > stock) {
+          return res.status(400).json({ message: `Stock max ${stock} rouleaux.` });
+        }
 
         const rouleauxUtilises = qMetres / longueurParRouleau;
         stock -= rouleauxUtilises;
@@ -91,8 +94,6 @@ router.post('/', (req, res) => {
   );
 });
 
-
-
 // ==================== AJOUTER PLUSIEURS COMMANDES ====================
 router.post('/multiples', async (req, res) => {
   const { commandes } = req.body;
@@ -134,9 +135,8 @@ router.post('/multiples', async (req, res) => {
         const qRouleaux = parseFloat(quantite_commande) || 0;
 
         const qteMaxMetres = stock * longueurParRouleau;
-        if (qMetres > qteMaxMetres) {
-          throw new Error(`Stock insuffisant pour ${produit_reference}: ${qMetres}m > ${qteMaxMetres}m`);
-        }
+        if (qMetres > qteMaxMetres) throw new Error(`Stock insuffisant pour ${produit_reference}: ${qMetres}m > ${qteMaxMetres}m`);
+        if (qRouleaux > stock) throw new Error(`Stock insuffisant pour ${produit_reference}: ${qRouleaux} rouleaux > ${stock}`);
 
         const rouleauxUtilises = qMetres / longueurParRouleau;
         stock -= rouleauxUtilises;
@@ -180,7 +180,6 @@ router.post('/multiples', async (req, res) => {
   }
 });
 
-
 // ==================== RECUPERER TOUTES LES COMMANDES ====================
 router.get('/', (req, res) => {
   const sql = `
@@ -209,7 +208,6 @@ router.get('/', (req, res) => {
 });
 
 // ==================== STATISTIQUES ====================
-
 router.get('/stats/journalier', (req, res) => {
   const moisNum = Number(req.query.mois);
   const anneeNum = Number(req.query.annee);

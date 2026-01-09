@@ -43,6 +43,7 @@ const CommandesScreen = () => {
     axios.get(`${API_URL}/clients`).then((res) =>
       setClients(res.data.map((c) => ({ label: c.nom, value: c.id })))
     );
+
     // Charger produits
     axios.get(`${API_URL}/produits`).then((res) =>
       setProduits(
@@ -50,11 +51,13 @@ const CommandesScreen = () => {
           label: p.designation,
           value: p.reference,
           quantite_stock: Number(p.quantite_stock) || 0,
+          metres_restants: Number(p.metres_restants) || 0,
           longueur_par_rouleau: Number(p.longueur_par_rouleau) || 0,
           type: p.designation.toUpperCase().includes("ROUL") ? "laniere" : "autre",
         }))
       )
     );
+
     fetchCommandes();
   }, []);
 
@@ -76,6 +79,7 @@ const CommandesScreen = () => {
   const produitSelectionne = produits.find((p) => p.value === produitRef);
   const isLaniere = produitSelectionne?.type === "laniere";
   const quantiteStock = produitSelectionne?.quantite_stock || 0;
+  const metresRestants = produitSelectionne?.metres_restants || 0;
   const longueurParRouleau = produitSelectionne?.longueur_par_rouleau || 0;
 
   const handleAddProduct = () => {
@@ -92,14 +96,15 @@ const CommandesScreen = () => {
     };
 
     if (isLaniere) {
-      const r = parseInt(rouleaux) || 0;
-      const m = parseInt(metres) || 0;
+      const r = parseFloat(rouleaux) || 0;
+      const m = parseFloat(metres) || 0;
       if (r <= 0 && m <= 0) return Alert.alert("Erreur", "Renseignez rouleaux ou mètres.");
       if (r > quantiteStock) return Alert.alert("Erreur", `Stock max ${quantiteStock} rouleaux.`);
-      if (m > quantiteStock * longueurParRouleau)
-        return Alert.alert("Erreur", `Stock max ${quantiteStock * longueurParRouleau} m.`);
-      if (r > 0) body.quantite_commande = r;
-      if (m > 0) body.metres_commandees = m;
+      if (m > quantiteStock * longueurParRouleau + metresRestants)
+        return Alert.alert("Erreur", `Stock max ${quantiteStock * longueurParRouleau + metresRestants} m.`);
+
+      body.quantite_commande = r;
+      body.metres_commandees = m;
       body.montant = ((r > 0 ? r : m) * body.prix_unitaire).toFixed(2);
     } else {
       const q = parseFloat(quantite);
@@ -136,7 +141,9 @@ const CommandesScreen = () => {
     <View style={styles.row}>
       <Text style={[styles.cell, { width: 120 }]}>{item.nom_client || "-"}</Text>
       <Text style={[styles.cell, { width: 250 }]}>{item.designation_produit || "-"}</Text>
-      <Text style={[styles.cell, { width: 100 }]}>{item.quantite_commande ?? item.metres_commandees ?? "-"}</Text>
+      <Text style={[styles.cell, { width: 100 }]}>
+        {item.quantite_commande ?? item.metres_commandees ?? "-"}
+      </Text>
       <Text style={[styles.cell, { width: 100 }]}>{item.prix_unitaire ?? "-"}</Text>
       <Text style={[styles.cell, { width: 100 }]}>{item.montant ?? "-"}</Text>
     </View>
@@ -184,14 +191,10 @@ const CommandesScreen = () => {
                 {/* CLIENT */}
                 <Text style={styles.label}>Client</Text>
                 <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={clientId}
-                    onValueChange={setClientId}
-                    style={{ color: "#000" }}
-                  >
+                  <Picker selectedValue={clientId} onValueChange={setClientId}>
                     <Picker.Item label="Sélectionner un client" value={null} color="#555" />
                     {clients.map((c) => (
-                      <Picker.Item key={c.value} label={c.label} value={c.value}  />
+                      <Picker.Item key={c.value} label={c.label} value={c.value}  style={{ color: '#111' }}/>
                     ))}
                   </Picker>
                 </View>
@@ -199,14 +202,10 @@ const CommandesScreen = () => {
                 {/* PRODUIT */}
                 <Text style={styles.label}>Produit</Text>
                 <View style={styles.pickerContainer}>
-                  <Picker
-                    selectedValue={produitRef}
-                    onValueChange={setProduitRef}
-                    style={{ color: "#000" }}
-                  >
+                  <Picker selectedValue={produitRef} onValueChange={setProduitRef}>
                     <Picker.Item label="Sélectionner un produit" value={null} color="#555" />
                     {produits.map((p) => (
-                      <Picker.Item key={p.value} label={p.label} value={p.value} />
+                      <Picker.Item key={p.value} label={p.label} value={p.value}  style={{ color: '#111' }}/>
                     ))}
                   </Picker>
                 </View>
@@ -261,18 +260,17 @@ const CommandesScreen = () => {
             renderItem={({ item }) => (
               <View style={styles.listItem}>
                 <Text>
-                  {item.produit_reference} :{" "}
-                  {item.quantite_commande || item.metres_commandees} × {item.prix_unitaire} ={" "}
-                  {item.montant}
+                  {item.produit_reference} : {item.quantite_commande || item.metres_commandees} ×{" "}
+                  {item.prix_unitaire} = {item.montant}
                 </Text>
               </View>
             )}
             ListFooterComponent={
-              commandesMultiple.length > 0 ? (
+              commandesMultiple.length > 0 && (
                 <TouchableOpacity onPress={handleSubmit} style={[styles.button, { margin: 12 }]}>
                   <Text style={styles.buttonText}>Envoyer la commande</Text>
                 </TouchableOpacity>
-              ) : null
+              )
             }
           />
         </KeyboardAvoidingView>
@@ -286,11 +284,7 @@ const CommandesScreen = () => {
                   key={i}
                   style={[
                     styles.cell,
-                    {
-                      width: [120, 250, 100, 100, 100][i],
-                      color: "#fff",
-                      fontWeight: "bold",
-                    },
+                    { width: [120, 250, 100, 100, 100][i], color: "#000000ff", fontWeight: "bold" },
                   ]}
                 >
                   {title}
@@ -320,19 +314,13 @@ const styles = StyleSheet.create({
   activeTab: { borderColor: "#2563eb" },
   tabText: { color: "#555" },
   activeTabText: { color: "#2563eb", fontWeight: "bold" },
-  input: {
-    backgroundColor: "#fff",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
-    color: "#000",
-  },
+  input: { backgroundColor: "#fff", padding: 10, borderRadius: 8, marginBottom: 10, color: "#000" },
   button: { backgroundColor: "#2563eb", padding: 12, borderRadius: 8 },
   buttonText: { color: "#fff", fontWeight: "bold", textAlign: "center" },
   row: { flexDirection: "row", backgroundColor: "#e0f2fe", padding: 8, marginVertical: 2 },
   cell: { textAlign: "center", paddingHorizontal: 4 },
-  label: { fontWeight: "bold", color: "#2563eb", marginBottom: 6, marginTop: 10 },
-  pickerContainer: { backgroundColor: "#fff", borderRadius: 8, marginBottom: 10 },
+  label: { fontWeight: "bold", color: "#000000ff", marginBottom: 6, marginTop: 10 },
+  pickerContainer: { backgroundColor: "#fff", borderRadius: 8, marginBottom: 10},
   listItem: { padding: 10, backgroundColor: "#e0f2fe", margin: 4, borderRadius: 6 },
 });
 

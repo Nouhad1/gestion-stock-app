@@ -27,16 +27,29 @@ router.get('/', (req, res) => {
     GROUP BY p.reference, p.designation, p.prix_unitaire, p.quantite_stock, p.quantite_stock_2, p.longueur_par_rouleau
     ORDER BY p.reference
   `;
+
   db.query(sql, (err, rows) => {
     if (err) {
       console.error('Erreur serveur produits :', err);
       return res.status(500).json({ message: 'Erreur serveur', error: err.message });
     }
-    const produits = rows.map(p => ({
-      ...p,
-      stockAfficheDepot1: formatStockDecimal(p.quantite_stock, p.longueur_par_rouleau),
-      stockAfficheDepot2: formatStockDecimal(p.quantite_stock_2, p.longueur_par_rouleau)
-    }));
+
+    const produits = rows.map(p => {
+      const stockDepot1 = p.quantite_stock || 0;
+      const stockDepot2 = p.quantite_stock_2 || 0;
+      const longueur = p.longueur_par_rouleau || 0;
+
+      return {
+        ...p,
+        // Stock affiché pour l'UI
+        stockAfficheDepot1: formatStockDecimal(stockDepot1, longueur),
+        stockAfficheDepot2: formatStockDecimal(stockDepot2, longueur),
+        // Mètres restants calculés pour le front
+        metres_restants: longueur > 0 ? ((stockDepot1 - Math.floor(stockDepot1)) * longueur).toFixed(2) : 0,
+        metres_restants_2: longueur > 0 ? ((stockDepot2 - Math.floor(stockDepot2)) * longueur).toFixed(2) : 0
+      };
+    });
+
     res.json(produits);
   });
 });
