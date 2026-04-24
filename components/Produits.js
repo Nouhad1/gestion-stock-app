@@ -11,17 +11,11 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import SegmentedControl from '@react-native-segmented-control/segmented-control';
 
-const API_URL =
-  'https://gestion-stock-app-production.up.railway.app/api/produits';
+const API_URL = 'https://gestion-stock-app-production.up.railway.app/api/produits';
 
-export default function ProductTable() {
+export default function ProductTableExcel() {
   const [produits, setProduits] = useState([]);
-  const [filteredProduits, setFilteredProduits] = useState([]);
-  const [selectedDepot, setSelectedDepot] = useState('depot1');
-  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -29,10 +23,17 @@ export default function ProductTable() {
   const fetchProduits = async () => {
     try {
       const res = await axios.get(API_URL);
-      setProduits(res.data);
-      setFilteredProduits(res.data);
+
+      const data = res.data.map((item) => ({
+        ...item,
+        prix_unitaire_edit: item.prix_unitaire
+          ? String(item.prix_unitaire)
+          : '',
+      }));
+
+      setProduits(data);
     } catch (err) {
-      console.error('Erreur API produits:', err.message);
+      console.error(err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -43,24 +44,33 @@ export default function ProductTable() {
     fetchProduits();
   }, []);
 
-  /* ================= SEARCH ================= */
-  useEffect(() => {
-    const text = search.toLowerCase();
-    setFilteredProduits(
-      produits.filter(
-        (item) =>
-          item.reference?.toLowerCase().includes(text) ||
-          item.designation?.toLowerCase().includes(text)
-      )
-    );
-  }, [search, produits]);
-
   const onRefresh = () => {
     setRefreshing(true);
     fetchProduits();
   };
 
-  /* ================= AVAILABILITY ================= */
+  /* ================= UPDATE CELL ================= */
+  const handleChange = (value, index, field) => {
+    const newData = [...produits];
+    newData[index][field] = value;
+    setProduits(newData);
+  };
+
+  /* ================= SAVE ================= */
+  const saveRow = async (item) => {
+    try {
+      await axios.put(`${API_URL}/${item.reference}`, {
+        prix_unitaire: Number(item.prix_unitaire_edit),
+      });
+
+      console.log('✅ Enregistré');
+    } catch (err) {
+      console.error(err.message);
+    }
+  };
+
+  /* ================= AVAILABILITY (COMMENTED) ================= */
+  /*
   const renderAvailability = (qty) => {
     let label = 'Rupture';
     let style = styles.outOfStock;
@@ -79,39 +89,59 @@ export default function ProductTable() {
       </View>
     );
   };
+  */
 
   /* ================= ROW ================= */
   const renderItem = ({ item, index }) => {
     const depot1 = Number(item.quantite_stock || 0);
     const depot2 = Number(item.quantite_stock_2 || 0);
-    const stockSelected = selectedDepot === 'depot1' ? depot1 : depot2;
     const global = depot1 + depot2;
 
-    const prixUnitaire =
-      item.prix_unitaire != null && !isNaN(item.prix_unitaire)
-        ? Number(item.prix_unitaire).toFixed(2)
-        : '-';
+    const prix = Number(item.prix_unitaire_edit || 0);
+    const total = prix * global;
 
-    const prixMoyen =
+    /* const prixMoyen =
       item.prix_moyen_achat != null && !isNaN(item.prix_moyen_achat)
         ? Number(item.prix_moyen_achat).toFixed(2)
-        : '-';
+        : '-'; */
 
     return (
       <View style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
         <Text style={[styles.cell, { width: 100 }]}>{item.reference}</Text>
-        <Text style={[styles.cell, { width: 400 }]}>{item.designation}</Text>
-        <Text style={[styles.cell, { width: 150 }]}>{stockSelected}</Text>
+
+        <Text style={[styles.cell, { width: 250 }]}>{item.designation}</Text>
+
         <Text style={[styles.cell, { width: 80 }]}>{global}</Text>
+
+        {/* PRIX UNITAIRE EDITABLE */}
+        <TextInput
+          style={[styles.input, { width: 100 }]}
+          keyboardType="numeric"
+          value={item.prix_unitaire_edit}
+          onChangeText={(text) =>
+            handleChange(text, index, 'prix_unitaire_edit')
+          }
+          onEndEditing={() => saveRow(item)}
+        />
+
+        {/* PRIX TOTAL AUTO */}
         <Text style={[styles.cell, { width: 120 }]}>
-          {prixUnitaire !== '-' ? `${prixUnitaire} MAD` : '-'}
+          {total ? `${total.toFixed(2)} MAD` : '0 MAD'}
         </Text>
+
+        {/* PRIX MOYEN (COMMENTED) */}
+        {/*
         <Text style={[styles.cell, { width: 120 }]}>
           {prixMoyen !== '-' ? `${prixMoyen} MAD` : '-'}
         </Text>
+        */}
+
+        {/* DISPONIBILITE (COMMENTED) */}
+        {/*
         <View style={[styles.cell, { width: 100 }]}>
-          {renderAvailability(stockSelected)}
+          {renderAvailability(global)}
         </View>
+        */}
       </View>
     );
   };
@@ -120,8 +150,8 @@ export default function ProductTable() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2563eb" />
-        <Text>Chargement des produits...</Text>
+        <ActivityIndicator size="large" />
+        <Text>Chargement...</Text>
       </View>
     );
   }
@@ -129,66 +159,29 @@ export default function ProductTable() {
   /* ================= UI ================= */
   return (
     <SafeAreaView style={styles.container}>
-      {/* HEADER */}
-      <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.header}>
-        <Text style={styles.headerTitle}>📦 Liste des Produits</Text>
-      </LinearGradient>
+      <Text style={styles.title}>📊 Tableau Produits (Style Excel)</Text>
 
-      {/* DEPOT */}
-      <View style={styles.segmentContainer}>
-        <SegmentedControl
-          values={['Hay Mohemmadi', 'Had Soualem']}
-          selectedIndex={selectedDepot === 'depot1' ? 0 : 1}
-          onChange={(e) =>
-            setSelectedDepot(
-              e.nativeEvent.selectedSegmentIndex === 0
-                ? 'depot1'
-                : 'depot2'
-            )
-          }
-          tintColor="#2563eb"
-        />
-      </View>
-
-      {/* SEARCH */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          placeholder="🔍 Rechercher par référence ou désignation"
-          value={search}
-          onChangeText={setSearch}
-          style={styles.searchInput}
-        />
-      </View>
-
-      {/* TABLE */}
-      <ScrollView horizontal showsHorizontalScrollIndicator>
+      <ScrollView horizontal>
         <View>
-          {/* HEADER ROW */}
-          <View style={[styles.row, styles.headerRow]}>
-            <Text style={[styles.headerCell, { width: 100 }]}>Référence</Text>
-            <Text style={[styles.headerCell, { width: 400 }]}>Désignation</Text>
-            <Text style={[styles.headerCell, { width: 150 }]}>
-              {selectedDepot === 'depot1'
-                ? 'Hay Mohemmadi'
-                : 'Had Soualem'}
-            </Text>
-            <Text style={[styles.headerCell, { width: 80 }]}>Global</Text>
-            <Text style={[styles.headerCell, { width: 120 }]}>Prix U</Text>
-            <Text style={[styles.headerCell, { width: 120 }]}>Prix Moyen</Text>
-            <Text style={[styles.headerCell, { width: 100 }]}>Dispo</Text>
+          {/* HEADER */}
+          <View style={[styles.row, styles.header]}>
+            <Text style={[styles.headerCell, { width: 100 }]}>Réf</Text>
+            <Text style={[styles.headerCell, { width: 250 }]}>Désignation</Text>
+            <Text style={[styles.headerCell, { width: 80 }]}>Stock</Text>
+            <Text style={[styles.headerCell, { width: 100 }]}>Prix U</Text>
+            <Text style={[styles.headerCell, { width: 120 }]}>Total</Text>
+
+            {/* <Text style={[styles.headerCell, { width: 120 }]}>Prix Moyen</Text>
+            <Text style={[styles.headerCell, { width: 100 }]}>Dispo</Text> */}
           </View>
 
           {/* BODY */}
           <FlatList
-            data={filteredProduits}
+            data={produits}
             keyExtractor={(item) => item.reference}
             renderItem={renderItem}
             refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={['#2563eb']}
-              />
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
             }
           />
         </View>
@@ -199,48 +192,50 @@ export default function ProductTable() {
 
 /* ================= STYLES ================= */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f7fb' },
+  container: { flex: 1, backgroundColor: '#f5f7fb', padding: 10 },
 
-  header: { padding: 16 },
-  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#fff' },
-
-  segmentContainer: { margin: 16 },
-
-  searchContainer: { marginHorizontal: 16, marginBottom: 8 },
-  searchInput: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
   },
 
   row: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderColor: '#ddd',
-    minHeight: 44,
     alignItems: 'center',
+    minHeight: 45,
   },
 
   rowEven: { backgroundColor: '#fff' },
   rowOdd: { backgroundColor: '#f9f9f9' },
-  headerRow: { backgroundColor: '#2563eb' },
+
+  header: { backgroundColor: '#2563eb' },
 
   cell: {
     textAlign: 'center',
-    paddingHorizontal: 6,
-    color: '#111',
+    padding: 6,
   },
 
   headerCell: {
     textAlign: 'center',
-    paddingHorizontal: 6,
+    padding: 6,
     fontWeight: 'bold',
     color: '#fff',
   },
 
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    margin: 4,
+    padding: 6,
+    textAlign: 'center',
+    borderRadius: 6,
+    backgroundColor: '#fff',
+  },
+
+  /* DISPONIBILITE (PRET POUR ACTIVATION) */
   availability: {
     paddingVertical: 4,
     borderRadius: 12,
