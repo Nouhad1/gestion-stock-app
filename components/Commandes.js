@@ -38,9 +38,6 @@ const CommandesScreen = () => {
   const [showClientList, setShowClientList] = useState(false);
   const [showProduitsList, setShowProduitsList] = useState(false);
 
-  // ⭐ AJOUT PAYMENT / TRANSPORT
-  const [transport, setTransport] = useState("Honda");
-
   const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
 
   useEffect(() => {
@@ -86,7 +83,8 @@ const CommandesScreen = () => {
     (sum, item) => sum + (parseFloat(item.montant) || 0),
     0
   );
-
+  
+  // ✅ SUPPRESSION PRODUIT
   const handleRemoveItem = (index) => {
     const newList = [...commandesMultiple];
     newList.splice(index, 1);
@@ -116,6 +114,7 @@ const CommandesScreen = () => {
 
     setCommandesMultiple((prev) => [...prev, item]);
 
+    // RESET
     setProduitRef(null);
     setProduitsSearch("");
     setQuantite("");
@@ -128,10 +127,8 @@ const CommandesScreen = () => {
     if (!commandesMultiple.length)
       return Alert.alert("Erreur", "Aucune commande");
 
-    // ⭐ AJOUT PAYMENT ICI
     await axios.post(`${API_URL}/commandes/multiples`, {
       commandes: commandesMultiple,
-      transport: transport, // ⭐ AJOUT IMPORTANT
     });
 
     setCommandesMultiple([]);
@@ -162,65 +159,184 @@ const CommandesScreen = () => {
       </View>
 
       {activeTab === "nouvelle" ? (
+        
         <FlatList
           data={commandesMultiple}
           keyExtractor={(i, idx) => idx.toString()}
           ListHeaderComponent={
-            <View style={styles.card}>
-              <Text style={styles.label}>Transport / Paiement</Text>
+    
 
-              {/* ⭐ AJOUT PICKER PAIEMENT */}
-              <View style={styles.input}>
-                <Picker
-                  selectedValue={transport}
-                  onValueChange={(val) => setTransport(val)}
-                >
-                  <Picker.Item label="Honda (7 jours)" value="Honda" />
-                  <Picker.Item label="Messagerie (30 jours)" value="Messagerie" />
-                </Picker>
-              </View>
-
-              <Text style={styles.label}>Entrez le numéro de bon livraison</Text>
-              <TextInput
-                placeholder="BL"
-                value={blNum}
-                onChangeText={setBlNum}
-                style={styles.input}
-              />
-
-              {/* ===== reste de ton code inchangé ===== */}
-            </View>
-          }
-          renderItem={({ item, index }) => (
-            <View style={styles.itemRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: "bold" }}>
-                  {item.produit_reference}
-                </Text>
-                <Text>
-                  {item.quantite_commande} × {item.prix_unitaire}
-                </Text>
-                <Text style={{ color: "#16a34a" }}>
-                  {item.montant} DH
-                </Text>
-              </View>
-
-              <TouchableOpacity
-                onPress={() => handleRemoveItem(index)}
-                style={styles.deleteBtn}
-              >
-                <Text style={{ color: "#fff", fontWeight: "bold" }}>X</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          ListFooterComponent={
-            commandesMultiple.length > 0 && (
-              <TouchableOpacity style={styles.submit} onPress={handleSubmit}>
-                <Text style={styles.btnText}>Valider commande</Text>
-              </TouchableOpacity>
-            )
-          }
+      <View style={styles.card}>
+        <View>
+      <Text style={styles.label}>
+        Entrez le numéro de bon livraison
+      </Text>
+        <TextInput
+          placeholder="BL"
+          value={blNum}
+          onChangeText={setBlNum}
+          style={styles.input}
         />
+
+        {/* CLIENT */}
+        <Text style={styles.label}>
+        Entrez le nom du client
+      </Text>
+        <TextInput
+          placeholder="Client..."
+          value={clientSearch}
+          onChangeText={(t) => {
+            setClientSearch(t);
+            setShowClientList(true);
+            setSelectedClient(null);
+          }}
+          style={styles.input}
+        />
+
+        {showClientList && clientSearch.length > 0 && (
+          <View style={styles.dropdown}>
+            {clients
+              .filter((c) =>
+                c.label
+                  .toLowerCase()
+                  .startsWith(clientSearch.toLowerCase())
+              )
+              .slice(0, 6)
+              .map((c) => (
+                <TouchableOpacity
+                  key={c.value}
+                  onPress={() => {
+                    setSelectedClient({ nom: c.label });
+                    setClientId(c.value);
+                    setClientSearch(c.label);
+                    setShowClientList(false);
+                  }}
+                >
+                  <Text style={styles.dropdownItem}>{c.label}</Text>
+                </TouchableOpacity>
+              ))}
+          </View>
+        )}
+
+        {/* PRODUIT */}
+        <Text style={styles.label}>
+        Entrez le produit
+      </Text>
+        <TextInput
+          placeholder="Produit..."
+          value={produitsSearch}
+          onChangeText={(t) => {
+            setProduitsSearch(t);
+            setShowProduitsList(true);
+            setSelectedProduits(null);
+          }}
+          style={styles.input}
+        />
+
+        {showProduitsList && produitsSearch.length > 0 && (
+          <View style={styles.dropdown}>
+            {produits
+              .filter((c) =>
+                c.label
+                  .toLowerCase()
+                  .startsWith(produitsSearch.toLowerCase())
+              )
+              .slice(0, 6)
+              .map((c) => (
+                <TouchableOpacity
+                  key={c.value}
+                  onPress={() => {
+                    setSelectedProduits({ designation: c.label });
+                    setProduitRef(c.value);
+                    setProduitsSearch(c.label);
+                    setShowProduitsList(false);
+                  }}
+                >
+                  <Text style={styles.dropdownItem}>{c.label}</Text>
+                </TouchableOpacity>
+              ))}
+          </View>
+        )}
+
+        <Text style={styles.label}>
+        Entrez la quantité
+      </Text>
+        {isLaniere ? (
+          <>
+          
+            <TextInput
+              placeholder="Rouleaux"
+              value={rouleaux}
+              onChangeText={setRouleaux}
+              style={styles.input}
+            />
+            <TextInput
+              placeholder="Mètres"
+              value={metres}
+              onChangeText={setMetres}
+              style={styles.input}
+            />
+          </>
+        ) : (
+          
+          <TextInput
+            placeholder="Quantité"
+            value={quantite}
+            onChangeText={setQuantite}
+            style={styles.input}
+          />
+        )}
+
+       <Text style={styles.label}>
+        Entrez le prix unitaire
+      </Text>
+        <TextInput
+          placeholder="Prix"
+          value={prixUnitaire}
+          onChangeText={setPrixUnitaire}
+          style={styles.input}
+          keyboardType="numeric"
+        />
+
+        <TouchableOpacity style={styles.addBtn} onPress={handleAddProduct}>
+          <Text style={styles.btnText}>+ Ajouter</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  }
+  renderItem={({ item, index }) => (
+  <View style={styles.itemRow}>
+    <View style={{ flex: 1 }}>
+      <Text style={{ fontWeight: "bold" }}>
+        {item.produit_reference}
+      </Text>
+      <Text>
+        {item.quantite_commande} × {item.prix_unitaire}
+      </Text>
+      <Text style={{ color: "#16a34a" }}>
+        {item.montant} DH
+      </Text>
+    </View>
+
+    {/* ❌ SUPPRIMER */}
+    <TouchableOpacity
+      onPress={() => handleRemoveItem(index)}
+      style={styles.deleteBtn}
+    >
+      <Text style={{ color: "#fff", fontWeight: "bold" }}>X</Text>
+    </TouchableOpacity>
+  </View>
+)}
+
+  
+  ListFooterComponent={
+    commandesMultiple.length > 0 && (
+      <TouchableOpacity style={styles.submit} onPress={handleSubmit}>
+        <Text style={styles.btnText}>Valider commande</Text>
+      </TouchableOpacity>
+    )
+  }
+/>
       ) : (
         <View style={{ flex: 1, padding: 10 }}>
           <Text style={styles.label}>Choisissez le mois</Text>
@@ -237,9 +353,106 @@ const CommandesScreen = () => {
               ))}
             </Picker>
           </View>
+            <Text style={styles.label}>Entrez le client</Text>
+           <TextInput
+                placeholder="Client..."
+                value={clientSearch}
+                onChangeText={(t) => {
+                  setClientSearch(t);
+                  setShowClientList(true);
+                  setSelectedClient(null);
+                }}
+                style={styles.input}
+              />
+
+              {showClientList && clientSearch.length > 0 && (
+                <View style={styles.dropdown}>
+                  {clients
+                    .filter((c) =>
+                      c.label
+                        .toLowerCase()
+                        .startsWith(clientSearch.toLowerCase())
+                    )
+                    .slice(0, 6)
+                    .map((c) => (
+                      <TouchableOpacity
+                        key={c.value}
+                        onPress={() => {
+                          setSelectedClient({ nom: c.label });
+                          setClientId(c.value);
+                          setClientSearch(c.label);
+                          setShowClientList(false);
+                        }}
+                      >
+                        <Text style={styles.dropdownItem}>{c.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                </View>
+              )}
+
+          {/* TABLE DESIGN PRO */}
+          <View style={styles.historyContainer}>
+            <ScrollView horizontal>
+              <View style={styles.tableWrapper}>
+                <View style={styles.tableHeader}>
+                  {["Produit", "Prix", "Qté", "Bon Livraison N°", "Date commande"].map((t, i) => (
+                    <Text
+                      key={i}
+                      style={[
+                        styles.cell,
+                        styles.headerCell,
+                        { width: [300, 100, 100, 120, 120][i], alignItems: "center"},
+                      ]}
+                    >
+                      {t}
+                    </Text>
+                  ))}
+                </View>
+
+                <ScrollView>
+                  {commandesFiltrees.map((item, i) => (
+                    <View
+                      key={i}
+                      style={[styles.row, i % 2 === 0 && styles.rowAlt]}
+                    >
+                      <Text style={[styles.cell, styles.productText, { width: 300, alignItems: "center" }]}>
+                        {item.designation_produit || "-"}
+                      </Text>
+
+                      <Text style={[styles.cell, styles.priceText, { width: 100, alignItems: "center" }]}>
+                        {item.prix_unitaire || "-"}
+                      </Text>
+
+                      <Text style={[styles.cell, styles.qtyText, { width: 100, alignItems: "center" }]}>
+                        {item.quantite_commande ||
+                          item.metres_commandees ||
+                          "-"}
+                      </Text>
+
+                      <View style={{ width: 120,alignItems: "center" }}>            
+                          <Text>
+                            {item.bl_num}
+                          </Text>
+                      </View>
+
+                      <Text style={[styles.cell, styles.dateText, { width: 120,alignItems: "center" }]}>
+                        {item.date_commande
+                          ? new Date(item.date_commande)
+                              .toISOString()
+                              .split("T")[0]
+                          : "-"}
+                      </Text>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            </ScrollView>
+          </View>
 
           <View style={styles.totalBox}>
-            <Text style={styles.totalLabel}>Chiffre du mois</Text>
+            <Text style={styles.totalLabel}>
+              Chiffre du mois
+            </Text>
             <Text style={styles.totalValue}>
               {totalMois.toFixed(2)} DH
             </Text>
