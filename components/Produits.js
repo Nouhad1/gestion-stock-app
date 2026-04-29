@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,29 +11,52 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import SegmentedControl from '@react-native-segmented-control/segmented-control';
 
-const API_URL = 'https://gestion-stock-app-production.up.railway.app/api/produits';
+const API_URL =
+  'https://gestion-stock-app-production.up.railway.app/api/produits';
 
-export default function ProductTableExcel() {
+/* ================= LOGIQUE STOCK INTELLIGENT ================= */
+const getStockThreshold = (designation = '') => {
+  const name = designation.toLowerCase();
+
+  if (name.includes('rouleau laniere 200/2/50 positif')) return 50;
+  if (name.includes('positif') || name.includes('negatif')) return 20;
+
+  if (
+    name.includes('orange') ||
+    name.includes('bleu') ||
+    name.includes('vert') ||
+    name.includes('rouge') ||
+    name.includes('noir')
+  ) return 10;
+
+  if (name.includes('petrin')) return 5;
+  if (name.includes('four')) return 8;
+  if (name.includes('porte')) return 20;
+  if (name.includes('support 1m')) return 120;
+  if (name.includes('support')) return 60;
+  if (name.includes('crochet')) return 200;
+
+  return 5;
+};
+
+export default function ProductTable() {
   const [produits, setProduits] = useState([]);
+  const [filteredProduits, setFilteredProduits] = useState([]);
+  const [selectedDepot, setSelectedDepot] = useState('depot1');
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  /* ================= FETCH ================= */
   const fetchProduits = async () => {
     try {
       const res = await axios.get(API_URL);
-
-      const data = res.data.map((item) => ({
-        ...item,
-        prix_unitaire_edit: item.prix_unitaire
-          ? String(item.prix_unitaire)
-          : '',
-      }));
-
-      setProduits(data);
+      setProduits(res.data);
+      setFilteredProduits(res.data);
     } catch (err) {
-      console.error(err.message);
+      console.error('Erreur API produits:', err.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -44,41 +67,32 @@ export default function ProductTableExcel() {
     fetchProduits();
   }, []);
 
+  useEffect(() => {
+    const text = search.toLowerCase();
+    setFilteredProduits(
+      produits.filter(
+        (item) =>
+          item.reference?.toLowerCase().includes(text) ||
+          item.designation?.toLowerCase().includes(text)
+      )
+    );
+  }, [search, produits]);
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchProduits();
   };
 
-  /* ================= UPDATE CELL ================= */
-  const handleChange = (value, index, field) => {
-    const newData = [...produits];
-    newData[index][field] = value;
-    setProduits(newData);
-  };
+  const renderAvailability = (stock, designation) => {
+    const threshold = getStockThreshold(designation);
 
-  /* ================= SAVE ================= */
-  const saveRow = async (item) => {
-    try {
-      await axios.put(`${API_URL}/${item.reference}`, {
-        prix_unitaire: Number(item.prix_unitaire_edit),
-      });
+    let label = 'Dispo';
+    let style = styles.inStock;
 
-      console.log('✅ Enregistré');
-    } catch (err) {
-      console.error(err.message);
-    }
-  };
-
-  /* ================= AVAILABILITY (COMMENTED) ================= */
-  /*
-  const renderAvailability = (qty) => {
-    let label = 'Rupture';
-    let style = styles.outOfStock;
-
-    if (qty > 3) {
-      label = 'Dispo';
-      style = styles.inStock;
-    } else if (qty > 0) {
+    if (stock <= 0) {
+      label = 'Rupture';
+      style = styles.outOfStock;
+    } else if (stock < threshold) {
       label = 'Faible';
       style = styles.lowStock;
     }
@@ -89,95 +103,109 @@ export default function ProductTableExcel() {
       </View>
     );
   };
-  */
 
-  /* ================= ROW ================= */
   const renderItem = ({ item, index }) => {
     const depot1 = Number(item.quantite_stock || 0);
     const depot2 = Number(item.quantite_stock_2 || 0);
+
+    const stockSelected =
+      selectedDepot === 'depot1' ? depot1 : depot2;
+
     const global = depot1 + depot2;
 
-    const prix = Number(item.prix_unitaire_edit || 0);
-    const total = prix * global;
+    const prixUnitaire =
+      item.prix_unitaire && !isNaN(item.prix_unitaire)
+        ? Number(item.prix_unitaire)
+        : null;
 
-    /* const prixMoyen =
-      item.prix_moyen_achat != null && !isNaN(item.prix_moyen_achat)
+    const prixUnitaireStr =
+      prixUnitaire !== null ? prixUnitaire.toFixed(2) : '-';
+
+    const prixTotal =
+      prixUnitaire !== null
+        ? (prixUnitaire * global).toFixed(2)
+        : '-';
+
+    const prixMoyen =
+      item.prix_moyen_achat && !isNaN(item.prix_moyen_achat)
         ? Number(item.prix_moyen_achat).toFixed(2)
-        : '-'; */
+        : '-';
 
     return (
       <View style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
         <Text style={[styles.cell, { width: 100 }]}>{item.reference}</Text>
-
-        <Text style={[styles.cell, { width: 250 }]}>{item.designation}</Text>
-
+        <Text style={[styles.cell, { width: 400 }]}>{item.designation}</Text>
+        <Text style={[styles.cell, { width: 150 }]}>{stockSelected}</Text>
         <Text style={[styles.cell, { width: 80 }]}>{global}</Text>
 
-        {/* PRIX UNITAIRE EDITABLE */}
-        <TextInput
-          style={[styles.input, { width: 100 }]}
-          keyboardType="numeric"
-          value={item.prix_unitaire_edit}
-          onChangeText={(text) =>
-            handleChange(text, index, 'prix_unitaire_edit')
-          }
-          onEndEditing={() => saveRow(item)}
-        />
+        <Text style={[styles.cell, { width: 120 }]}>{prixUnitaireStr} MAD</Text>
+        <Text style={[styles.cell, { width: 120 }]}>{prixTotal} MAD</Text>
+        <Text style={[styles.cell, { width: 120 }]}>{prixMoyen} MAD</Text>
 
-        {/* PRIX TOTAL AUTO */}
-        <Text style={[styles.cell, { width: 120 }]}>
-          {total ? `${total.toFixed(2)} MAD` : '0 MAD'}
-        </Text>
-
-        {/* PRIX MOYEN (COMMENTED) */}
-        {/*
-        <Text style={[styles.cell, { width: 120 }]}>
-          {prixMoyen !== '-' ? `${prixMoyen} MAD` : '-'}
-        </Text>
-        */}
-
-        {/* DISPONIBILITE (COMMENTED) */}
-        {/*
-        <View style={[styles.cell, { width: 100 }]}>
-          {renderAvailability(global)}
+        <View style={{ width: 100 }}>
+          {renderAvailability(global, item.designation)}
         </View>
-        */}
       </View>
     );
   };
 
-  /* ================= LOADING ================= */
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color="#2563eb" />
         <Text>Chargement...</Text>
       </View>
     );
   }
 
-  /* ================= UI ================= */
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>📊 Tableau Produits (Style Excel)</Text>
+      <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.header}>
+        <Text style={styles.headerTitle}>📦 Liste des Produits</Text>
+      </LinearGradient>
+
+      <View style={styles.segmentContainer}>
+        <SegmentedControl
+          values={['Hay Mohemmadi', 'Had Soualem']}
+          selectedIndex={selectedDepot === 'depot1' ? 0 : 1}
+          onChange={(e) =>
+            setSelectedDepot(
+              e.nativeEvent.selectedSegmentIndex === 0
+                ? 'depot1'
+                : 'depot2'
+            )
+            
+          }
+          tintColor ='#1252dcff'
+          backgroundColor='#000000'
+        />
+      </View>
+
+      <View style={styles.searchContainer}>
+        <TextInput
+          placeholder="🔍 Rechercher par référence ou désignation..."
+          value={search}
+          onChangeText={setSearch}
+          style={styles.searchInput}
+        />
+      </View>
+      
 
       <ScrollView horizontal>
         <View>
-          {/* HEADER */}
-          <View style={[styles.row, styles.header]}>
-            <Text style={[styles.headerCell, { width: 100 }]}>Réf</Text>
-            <Text style={[styles.headerCell, { width: 250 }]}>Désignation</Text>
-            <Text style={[styles.headerCell, { width: 80 }]}>Stock</Text>
-            <Text style={[styles.headerCell, { width: 100 }]}>Prix U</Text>
-            <Text style={[styles.headerCell, { width: 120 }]}>Total</Text>
-
-            {/* <Text style={[styles.headerCell, { width: 120 }]}>Prix Moyen</Text>
-            <Text style={[styles.headerCell, { width: 100 }]}>Dispo</Text> */}
+          <View style={[styles.row, styles.headerRow]}>
+            <Text style={[styles.headerCell, { width: 100 }]}>Ref</Text>
+            <Text style={[styles.headerCell, { width: 400 }]}>Désignation</Text>
+            <Text style={[styles.headerCell, { width: 150 }]}>Stock</Text>
+            <Text style={[styles.headerCell, { width: 80 }]}>Global</Text>
+            <Text style={[styles.headerCell, { width: 120 }]}>Prix U</Text>
+            <Text style={[styles.headerCell, { width: 120 }]}>Prix Total</Text>
+            <Text style={[styles.headerCell, { width: 120 }]}>Moyen</Text>
+            <Text style={[styles.headerCell, { width: 100 }]}>État</Text>
           </View>
 
-          {/* BODY */}
           <FlatList
-            data={produits}
+            data={filteredProduits}
             keyExtractor={(item) => item.reference}
             renderItem={renderItem}
             refreshControl={
@@ -190,60 +218,53 @@ export default function ProductTableExcel() {
   );
 }
 
-/* ================= STYLES ================= */
+/* ================= STYLE ================= */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f7fb', padding: 10 },
+  container: { flex: 1, backgroundColor: '#f5f7fb' },
+  header: { padding: 16 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
 
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
+  segmentContainer: { margin: 10 },
+
+  searchContainer: { marginHorizontal: 10, marginVertical:10 },
+  searchInput: {
+    backgroundColor: '#fff',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
 
   row: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderColor: '#ddd',
+    minHeight: 40,
     alignItems: 'center',
-    minHeight: 45,
   },
 
   rowEven: { backgroundColor: '#fff' },
   rowOdd: { backgroundColor: '#f9f9f9' },
 
-  header: { backgroundColor: '#2563eb' },
+  headerRow: { backgroundColor: '#2563eb' },
 
-  cell: {
-    textAlign: 'center',
-    padding: 6,
-  },
-
+  cell: { textAlign: 'center', paddingHorizontal: 5 },
   headerCell: {
-    textAlign: 'center',
-    padding: 6,
-    fontWeight: 'bold',
     color: '#fff',
-  },
-
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    margin: 4,
-    padding: 6,
+    fontWeight: 'bold',
     textAlign: 'center',
-    borderRadius: 6,
-    backgroundColor: '#fff',
   },
 
-  /* DISPONIBILITE (PRET POUR ACTIVATION) */
   availability: {
-    paddingVertical: 4,
-    borderRadius: 12,
+    padding: 5,
+    borderRadius: 10,
+    alignItems: 'center',
   },
   inStock: { backgroundColor: '#d1fae5' },
   lowStock: { backgroundColor: '#fef3c7' },
   outOfStock: { backgroundColor: '#fee2e2' },
-  availabilityText: { fontWeight: 'bold', textAlign: 'center' },
+
+  availabilityText: { fontWeight: 'bold' },
 
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });

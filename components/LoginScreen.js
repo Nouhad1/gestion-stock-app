@@ -200,7 +200,7 @@ const LoginScreen = () => {
       </KeyboardAvoidingView>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>© 2025 Bluestrek. Tous droits réservés.</Text>
+        <Text style={styles.footerText}>© 2026 Bluestrek. Tous droits réservés.</Text>
       </View>
     </View>
   );

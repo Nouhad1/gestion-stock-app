@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   RefreshControl
 } from 'react-native';
-//import DropDownPicker from 'react-native-dropdown-picker';
 import { Picker } from '@react-native-picker/picker';
 import { LineChart } from 'react-native-chart-kit';
 import axios from 'axios';
@@ -30,7 +29,8 @@ const HomeScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [yearList, setYearList] = useState([]);
   const [selectedYear, setSelectedYear] = useState(null);
-  const [openYear, setOpenYear] = useState(false);
+
+  const [selectedPoint, setSelectedPoint] = useState(null);
 
   const [cardsData, setCardsData] = useState({
     totalEntrees: 0,
@@ -41,14 +41,13 @@ const HomeScreen = () => {
 
   const [chartData, setChartData] = useState({
     labels: monthLabels,
-    datasets: [{ data: [], color: () => 'blue' }],
+    datasets: [{ data: [] }],
   });
 
   const [tableData, setTableData] = useState([]);
   const navigation = useNavigation();
   const API_BASE = "https://gestion-stock-app-production.up.railway.app/api/dashboard";
 
-  // === FETCH DASHBOARD ===
   const fetchDashboard = async (year) => {
     try {
       const [resCards, resChart, resTable] = await Promise.all([
@@ -57,7 +56,6 @@ const HomeScreen = () => {
         axios.get(`${API_BASE}/products?year=${year}`)
       ]);
 
-      // --- Cards Data ---
       setCardsData({
         totalEntrees: Number(resCards.data.totalEntrees) || 0,
         valeurAchats: Number(resCards.data.valeurAchats) || 0,
@@ -65,7 +63,6 @@ const HomeScreen = () => {
         valeurSorties: Number(resCards.data.valeurSorties) || 0,
       });
 
-      // --- Chart Data ---
       const dataMap = monthLabels.map(label => {
         const found = resChart.data.find(d => d.month === label);
         const ca = parseFloat(found?.ca);
@@ -74,16 +71,9 @@ const HomeScreen = () => {
 
       setChartData({
         labels: monthLabels,
-        datasets: [
-          {
-            data: dataMap,
-            color: (opacity = 1) => `rgba(0,123,255,${opacity})`,
-            strokeWidth: 2
-          }
-        ],
+        datasets: [{ data: dataMap }],
       });
 
-      // --- Table Data ---
       const safeTable = resTable.data.map(item => ({
         ...item,
         totalQuantity: parseFloat(item.totalQuantity) || 0
@@ -96,7 +86,6 @@ const HomeScreen = () => {
     }
   };
 
-  // === FETCH YEARS ===
   useEffect(() => {
     const fetchYears = async () => {
       try {
@@ -150,61 +139,103 @@ const HomeScreen = () => {
         </View>
       </LinearGradient>
 
-      <View style={{ margin: 10, zIndex: 1000 }}>
+      <View style={{ margin: 10 }}>
         <Picker
-          open={openYear}
-          value={selectedYear}
-          items={yearList.map(y => ({ label: y.toString(), value: y }))}
-          setOpen={setOpenYear}
-          setValue={setSelectedYear}
-          onChangeValue={(value) => fetchDashboard(value)}
-          containerStyle={{ height: 40 }}
-        />
+          selectedValue={selectedYear}
+          onValueChange={(value) => {
+            setSelectedYear(value);
+            fetchDashboard(value);
+          }}
+          style={{ backgroundColor: '#fff' }}
+        >
+          {yearList.map((year) => (
+            <Picker.Item key={year} label={year.toString()} value={year} />
+          ))}
+        </Picker>
       </View>
 
       <View style={styles.cardRow}>
         <View style={styles.card}>
           <Text>Total des entrées</Text>
-          <Ionicons name="arrow-down-circle-outline" size={28} color="#007bff" style={{ marginBottom: 5 }} />
+          <Ionicons name="arrow-down-circle-outline" size={28} color="#007bff" />
           <Text style={styles.cardValue}>{cardsData.totalEntrees}</Text>
         </View>
         <View style={styles.card}>
           <Text>Valeur des entrées</Text>
-          <FontAwesome5 name="shopping-cart" size={28} color="#28a745" style={{ marginBottom: 5 }} />
-          <Text style={styles.cardValue}>{cardsData.valeurAchats.toLocaleString('fr-FR')} DH</Text>
+          <FontAwesome5 name="shopping-cart" size={28} color="#28a745" />
+          <Text style={styles.cardValue}>
+            {cardsData.valeurAchats.toLocaleString('fr-FR')} DH
+          </Text>
         </View>
       </View>
 
       <View style={styles.cardRow}>
         <View style={styles.card}>
           <Text>Total des sorties</Text>
-          <Ionicons name="arrow-up-circle-outline" size={28} color="#dc3545" style={{ marginBottom: 5 }} />
+          <Ionicons name="arrow-up-circle-outline" size={28} color="#dc3545" />
           <Text style={styles.cardValue}>{cardsData.totalSorties}</Text>
         </View>
         <View style={styles.card}>
           <Text>Valeur des sorties</Text>
-          <FontAwesome5 name="coins" size={28} color="#ffc107" style={{ marginBottom: 5 }} />
-          <Text style={styles.cardValue}>{cardsData.valeurSorties.toLocaleString('fr-FR')} DH</Text>
+          <FontAwesome5 name="coins" size={28} color="#ffc107" />
+          <Text style={styles.cardValue}>
+            {cardsData.valeurSorties.toLocaleString('fr-FR')} DH
+          </Text>
         </View>
       </View>
 
       <Text style={styles.sectionTitle}>📊 Chiffre d'affaires mensuel</Text>
-      <LineChart
-        data={chartData}
-        width={screenWidth - 20}
-        height={250}
-        chartConfig={{
-          backgroundGradientFrom: "#fff",
-          backgroundGradientTo: "#fff",
-          decimalPlaces: 0,
-          color: (opacity = 1) => `rgba(0, 123, 255, ${opacity})`,
-          labelColor: (opacity = 1) => `rgba(0,0,0,${opacity})`,
-          propsForDots: { r: "4", strokeWidth: "2", stroke: "#007bff" },
-        }}
-        bezier
-        style={{ marginVertical: 10, borderRadius: 12 }}
-        fromZero
-      />
+      <View>
+  <LineChart
+    data={chartData}
+    width={screenWidth - 20}
+    height={250}
+    chartConfig={{
+      backgroundGradientFrom: "#fff",
+      backgroundGradientTo: "#fff",
+      decimalPlaces: 0,
+      color: () => "#2563eb",
+      labelColor: () => "#000",
+    }}
+    bezier
+    fromZero
+    withDots
+    onDataPointClick={({ index, value }) => {
+      const chartWidth = screenWidth - 20;
+
+      // recalcul propre X
+      const x =
+        (chartWidth / chartData.labels.length) * index;
+
+      // recalcul Y (proportionnel)
+      const max = Math.max(...chartData.datasets[0].data, 1);
+      const y = 200 - (value / max) * 150;
+
+      setSelectedPoint({ value, x, y });
+    }}
+    style={{ borderRadius: 12 }}
+  />
+
+  {/* TOOLTIP FIX */}
+  {selectedPoint && (
+    <View
+      style={{
+        position: "absolute",
+        left: selectedPoint.x,
+        top: selectedPoint.y,
+        transform: [{ translateX: -20 }, { translateY: -30 }],
+        backgroundColor: "#000",
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 6,
+      }}
+    >
+      <Text style={{ color: "#fff", fontSize: 12 }}>
+        {selectedPoint.value}
+      </Text>
+    </View>
+  )}
+</View>
 
       <Text style={styles.sectionTitle}>📦 Produits commandés</Text>
       <View style={styles.tableHeader}>
@@ -215,7 +246,7 @@ const HomeScreen = () => {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f9f9f9' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#f9f9f9ff' }}>
       <FlatList
         data={tableData}
         keyExtractor={(item) => item.id?.toString() || item.designation}
@@ -252,7 +283,7 @@ const styles = StyleSheet.create({
   headerContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
   headerSubtitle: { color: '#d1d5db', fontSize: 14, marginTop: 2 },
-  tableCellHeader: { fontSize: 14, color: '#000', fontWeight: 'bold', alignItems: 'center' },
+  tableCellHeader: { fontSize: 14, color: '#000', fontWeight: 'bold' },
 });
 
 export default HomeScreen;
