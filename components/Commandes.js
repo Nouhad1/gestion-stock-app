@@ -127,12 +127,19 @@ const CommandesScreen = () => {
     return Alert.alert("Erreur", "Entrer quantité");
   }
 
+  if (showTransport && !transport) {
+    return Alert.alert("Erreur", "Choisir le transport");
+  }
+
+  if (showPayement && !payement) {
+    return Alert.alert("Erreur", "Choisir le paiement");
+  }
+
   const item = {
     bl_num: blNum,
     client_id: clientId,
     produit_reference: produitRef,
 
-    // ✅ CORRECTION ICI
     quantite_commande: isLaniere
       ? parseFloat(rouleaux) || 0
       : parseFloat(quantite),
@@ -142,23 +149,24 @@ const CommandesScreen = () => {
       : 0,
 
     prix_unitaire: parseFloat(prixUnitaire),
+
+    // ✅ AJOUT ICI (TRÈS IMPORTANT)
+    transport: transport || null,
+    payement: payement || "non_paye",
   };
 
   setCommandesMultiple((prev) => [...prev, item]);
 
-  // RESET
+  // RESET uniquement produit
   setProduitRef(null);
   setProduitsSearch("");
   setQuantite("");
   setRouleaux("");
   setMetres("");
   setPrixUnitaire("");
-
-
-  
 };
 
-  const handleSubmit = async () => {
+  /* const handleSubmit = async () => {
     if (!commandesMultiple.length)
       return Alert.alert("Erreur", "Aucune commande");
 
@@ -169,8 +177,29 @@ const CommandesScreen = () => {
     setCommandesMultiple([]);
     setBlNum("");
     fetchCommandes();
-  };
+  }; */
+   const handleSubmit = async () => {
+  if (!commandesMultiple.length)
+    return Alert.alert("Erreur", "Aucune commande");
 
+  try {
+    await axios.post(`${API_URL}/commandes/multiples`, {
+      commandes: commandesMultiple, // ✅ contient déjà transport + paiement
+    });
+
+    Alert.alert("Succès", "Commande enregistrée");
+
+    setCommandesMultiple([]);
+    setBlNum("");
+    setTransport("");
+    setPayement("");
+
+    fetchCommandes();
+  } catch (error) {
+    console.log("Erreur:", error.response?.data || error.message);
+    Alert.alert("Erreur", error.response?.data?.message || "Erreur serveur");
+  }
+};
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient colors={["#2563eb", "#1e40af"]} style={styles.header}>
@@ -339,32 +368,31 @@ const CommandesScreen = () => {
         />
 
 
-        {/* ✅ TRANSPORT (IMPORTANT : ICI !) */}
+        {/* TRANSPORT */}
 {showTransport && (
   <>
     <Text style={styles.label}>Choisir le transport</Text>
 
     <View style={styles.dropdown}>
       <Picker
-        style={styles.dropdown}
         selectedValue={transport}
         onValueChange={(value) => setTransport(value)}
       >
         <Picker.Item label="Sélectionner transport" value="" />
-        <Picker.Item label="MESSAGERIE" value="messagerie" />
-        <Picker.Item label="HONDA" value="honda" />
+        <Picker.Item label="MESSAGERIE" value="Messagerie" />
+        <Picker.Item label="HONDA" value="Honda" />
       </Picker>
     </View>
   </>
 )}
-  {/* ✅ PAIMENT (IMPORTANT : ICI !) */}
+
+{/* PAIEMENT */}
 {showPayement && (
   <>
-    <Text style={styles.label}>Statut du paiment</Text>
+    <Text style={styles.label}>Statut du paiement</Text>
 
     <View style={styles.dropdown}>
       <Picker
-        style={styles.dropdown}
         selectedValue={payement}
         onValueChange={(value) => setPayement(value)}
       >
