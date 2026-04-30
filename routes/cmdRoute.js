@@ -1,12 +1,12 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const db = require('../backend/db');
+const db = require("../backend/db");
 
-router.post('/multiples', async (req, res) => {
+router.post("/multiples", async (req, res) => {
   const { commandes } = req.body;
 
   if (!Array.isArray(commandes) || commandes.length === 0) {
-    return res.status(400).json({ message: 'Aucune commande reçue.' });
+    return res.status(400).json({ message: "Aucune commande reçue." });
   }
 
   const connection = await db.promise().getConnection();
@@ -14,6 +14,8 @@ router.post('/multiples', async (req, res) => {
 
   try {
     for (const cmd of commandes) {
+      console.log("📦 CMD REÇUE:", cmd);
+
       const {
         client_id,
         produit_reference,
@@ -22,33 +24,33 @@ router.post('/multiples', async (req, res) => {
         bl_num,
         prix_unitaire,
         transport,
-        payement
+        payement,
       } = cmd;
 
-      // ================= VALIDATIONS =================
-      if (!client_id) throw new Error("client_id manquant !");
-      if (!produit_reference) throw new Error("produit_reference manquant !");
+      if (!client_id || !produit_reference) {
+        throw new Error("Client ou produit manquant");
+      }
 
       const prix = parseFloat(prix_unitaire) || 0;
 
       // ================= PRODUIT =================
       const [produitRows] = await connection.query(
-        `SELECT designation, 
-                COALESCE(quantite_stock,0) AS quantite_stock, 
+        `SELECT designation,
+                COALESCE(quantite_stock,0) AS quantite_stock,
                 COALESCE(longueur_par_rouleau,0) AS longueur_par_rouleau
-         FROM produits 
+         FROM produits
          WHERE reference = ?`,
         [produit_reference]
       );
 
       if (!produitRows.length) {
-        throw new Error(`Produit introuvable : ${produit_reference}`);
+        throw new Error("Produit introuvable");
       }
 
       const produit = produitRows[0];
-      let stock = parseFloat(produit.quantite_stock) || 0;
-      const longueur = parseFloat(produit.longueur_par_rouleau) || 0;
-      const isLaniere = produit.designation.toLowerCase().includes('roul');
+      let stock = parseFloat(produit.quantite_stock);
+      const longueur = parseFloat(produit.longueur_par_rouleau);
+      const isLaniere = produit.designation.toLowerCase().includes("roul");
 
       let montant = 0;
       let insertResult;
@@ -59,22 +61,21 @@ router.post('/multiples', async (req, res) => {
         const qMetres = parseFloat(metres_commandees) || 0;
 
         if (!qRouleaux && !qMetres) {
-          throw new Error("Quantité lanière invalide");
+          throw new Error("Quantité invalide lanière");
         }
 
         const max = stock * longueur;
 
-        if (qMetres > max) throw new Error("Stock insuffisant (mètres)");
-        if (qRouleaux > stock) throw new Error("Stock insuffisant (rouleaux)");
-
-        const utilise = qRouleaux + (qMetres / longueur);
-        stock -= utilise;
+        if (qMetres > max) throw new Error("Stock insuffisant mètres");
+        if (qRouleaux > stock) throw new Error("Stock insuffisant rouleaux");
 
         const totalMetres = qRouleaux * longueur + qMetres;
+        stock -= qRouleaux + qMetres / longueur;
+
         montant = (totalMetres * prix).toFixed(2);
 
         const [result] = await connection.query(
-          `INSERT INTO commandes 
+          `INSERT INTO commandes
           (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, prix_unitaire, montant, date_commande)
           VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
           [
@@ -89,9 +90,10 @@ router.post('/multiples', async (req, res) => {
         );
 
         insertResult = result;
+      }
 
-      } else {
-        // ================= NORMAL =================
+      // ================= NORMAL =================
+      else {
         const q = parseFloat(quantite_commande) || 0;
 
         if (!q) throw new Error("Quantité invalide");
@@ -101,7 +103,7 @@ router.post('/multiples', async (req, res) => {
         montant = (q * prix).toFixed(2);
 
         const [result] = await connection.query(
-          `INSERT INTO commandes 
+          `INSERT INTO commandes
           (client_id, produit_reference, quantite_commande, bl_num, prix_unitaire, montant, date_commande)
           VALUES (?, ?, ?, ?, ?, ?, NOW())`,
           [
@@ -117,57 +119,37 @@ router.post('/multiples', async (req, res) => {
         insertResult = result;
       }
 
-      // ================= VALIDATION FK =================
+      // ================= ID COMMANDE =================
       const id_commande = insertResult.insertId;
 
       if (!id_commande) {
-        throw new Error("ID commande invalide (insertId null)");
+        throw new Error("Insert commande échoué (ID null)");
       }
 
-      const [check] = await connection.query(
-        "SELECT numCmd FROM commandes WHERE numCmd = ?",
-        [id_commande]
-      );
-
-      if (!check.length) {
-        throw new Error("Commande non trouvée avant paiement (FK issue)");
-      }
+      console.log("🧾 ID COMMANDE:", id_commande);
 
       // ================= PAIEMENT =================
-      const transportSafe =
-        transport === "Honda" ? "Honda" : "Messagerie";
+      const transportSafe = transport === "Honda" ? "Honda" : "Messagerie";
+      const payementSafe = payement === "paye" ? "paye" : "non_paye";
 
-      const payementSafe =
-        payement === "paye" ? "paye" : "non_paye";
+      await connection.query(
+        `INSERT INTO paiements
+        (id_commande, id_client, transport, statut_paiement)
+        VALUES (?, ?, ?, ?)`,
+        [
+          id_commande,
+          client_id,
+          transportSafe,
+          payementSafe,
+        ]
+      );
 
-      console.log("👉 PAIEMENT INSERT:", {
-        id_commande,
-        client_id,
-        transportSafe,
-        payementSafe,
-      });
-
-      try {
-        await connection.query(
-          `INSERT INTO paiements 
-          (id_commande, id_client, transport, statut_paiement)
-          VALUES (?, ?, ?, ?)`,
-          [
-            id_commande,
-            client_id,
-            transportSafe,
-            payementSafe,
-          ]
-        );
-      } catch (err) {
-        console.error("❌ ERREUR INSERT PAIEMENT:", err.sqlMessage || err.message);
-        throw err;
-      }
+      console.log("💰 Paiement OK");
 
       // ================= STOCK =================
       await connection.query(
-        `UPDATE produits 
-         SET quantite_stock = ? 
+        `UPDATE produits
+         SET quantite_stock = ?
          WHERE reference = ?`,
         [parseFloat(stock.toFixed(2)), produit_reference]
       );
@@ -176,13 +158,18 @@ router.post('/multiples', async (req, res) => {
     await connection.commit();
 
     return res.status(201).json({
-      message: 'Commandes + paiements enregistrés avec succès',
+      message: "Commandes + paiements enregistrés avec succès",
     });
 
   } catch (error) {
     await connection.rollback();
-    console.error("❌ ERREUR BACKEND:", error.message);
-    return res.status(500).json({ message: error.message });
+
+    console.error("❌ ERREUR BACKEND COMPLET:", error);
+
+    return res.status(500).json({
+      message: error.message,
+    });
+
   } finally {
     connection.release();
   }
