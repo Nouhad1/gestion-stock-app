@@ -41,6 +41,10 @@ const CommandesScreen = () => {
 
   const [refreshing, setRefreshing] = useState(false);
 
+  const [transport, setTransport] = useState("");
+  const [payement, setPayement] = useState("");
+  const clientsAvecTransport = [209, 221, 281, 215];
+
   const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
 
   useEffect(() => {
@@ -94,6 +98,10 @@ const CommandesScreen = () => {
     setCommandesMultiple(newList);
   };
 
+  const showTransport = clientsAvecTransport.includes(clientId);
+
+  const showPayement = clientsAvecTransport.includes(clientId);
+
   const onRefresh = async () => {
   setRefreshing(true);
   try {
@@ -103,6 +111,8 @@ const CommandesScreen = () => {
   }
   setRefreshing(false);
 };
+
+
 
   const handleAddProduct = () => {
   if (!blNum || !clientId || !produitRef || !prixUnitaire) {
@@ -207,45 +217,46 @@ const CommandesScreen = () => {
           style={styles.input}
         />
 
+        
         {/* CLIENT */}
-        <Text style={styles.label}>
-        Entrez le nom du client
-      </Text>
-        <TextInput
-          placeholder="Client..."
-          value={clientSearch}
-          onChangeText={(t) => {
-            setClientSearch(t);
-            setShowClientList(true);
-            setSelectedClient(null);
-          }}
-          style={styles.input}
-        />
+<Text style={styles.label}>
+  Entrez le nom du client
+</Text>
 
-        {showClientList && clientSearch.length > 0 && (
-          <View style={styles.dropdown}>
-            {clients
-              .filter((c) =>
-                c.label
-                  .toLowerCase()
-                  .startsWith(clientSearch.toLowerCase())
-              )
-              .slice(0, 6)
-              .map((c) => (
-                <TouchableOpacity
-                  key={c.value}
-                  onPress={() => {
-                    setSelectedClient({ nom: c.label });
-                    setClientId(c.value);
-                    setClientSearch(c.label);
-                    setShowClientList(false);
-                  }}
-                >
-                  <Text style={styles.dropdownItem}>{c.label}</Text>
-                </TouchableOpacity>
-              ))}
-          </View>
-        )}
+<TextInput
+  placeholder="Client..."
+  value={clientSearch}
+  onChangeText={(t) => {
+    setClientSearch(t);
+    setShowClientList(true);
+    setSelectedClient(null);
+  }}
+  style={styles.input}
+/>
+
+{/* 🔽 LISTE CLIENTS */}
+{showClientList && clientSearch.length > 0 && (
+  <View style={styles.dropdown}>
+    {clients
+      .filter((c) =>
+        c.label.toLowerCase().startsWith(clientSearch.toLowerCase())
+      )
+      .slice(0, 6)
+      .map((c) => (
+        <TouchableOpacity
+          key={c.value}
+          onPress={() => {
+            setSelectedClient({ nom: c.label });
+            setClientId(c.value);
+            setClientSearch(c.label);
+            setShowClientList(false);
+          }}
+        >
+          <Text style={styles.dropdownItem}>{c.label}</Text>
+        </TouchableOpacity>
+      ))}
+  </View>
+)}
 
         {/* PRODUIT */}
         <Text style={styles.label}>
@@ -327,6 +338,44 @@ const CommandesScreen = () => {
           keyboardType="numeric"
         />
 
+
+        {/* ✅ TRANSPORT (IMPORTANT : ICI !) */}
+{showTransport && (
+  <>
+    <Text style={styles.label}>Choisir le transport</Text>
+
+    <View style={styles.dropdown}>
+      <Picker
+        style={styles.dropdown}
+        selectedValue={transport}
+        onValueChange={(value) => setTransport(value)}
+      >
+        <Picker.Item label="Sélectionner transport" value="" />
+        <Picker.Item label="MESSAGERIE" value="messagerie" />
+        <Picker.Item label="HONDA" value="honda" />
+      </Picker>
+    </View>
+  </>
+)}
+  {/* ✅ PAIMENT (IMPORTANT : ICI !) */}
+{showPayement && (
+  <>
+    <Text style={styles.label}>Statut du paiment</Text>
+
+    <View style={styles.dropdown}>
+      <Picker
+        style={styles.dropdown}
+        selectedValue={payement}
+        onValueChange={(value) => setPayement(value)}
+      >
+        <Picker.Item label="Sélectionner" value="" />
+        <Picker.Item label="Payé" value="paye" />
+        <Picker.Item label="Non payé" value="non_paye" />
+      </Picker>
+    </View>
+  </>
+)}
+
         <TouchableOpacity style={styles.addBtn} onPress={handleAddProduct}>
           <Text style={styles.btnText}>+ Ajouter</Text>
         </TouchableOpacity>
@@ -340,8 +389,9 @@ const CommandesScreen = () => {
         {item.produit_reference}
       </Text>
       <Text>
-        {item.quantite_commande > 0 && `${item.quantite_commande} rouleaux `}
-        {item.metres_commandees > 0 && `+ ${item.metres_commandees} m`}
+        {item.quantite_commande > 0 && item.quantite_commande}
+        {/* {item.quantite_commande > 0 && `${item.quantite_commande} rouleaux `} */}
+        {/* {item.metres_commandees > 0 && `+ ${item.metres_commandees} m`} */}
       </Text>
       <Text style={{ color: "#16a34a" }}>
         {item.montant} DH

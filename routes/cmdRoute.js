@@ -4,7 +4,7 @@ const db = require('../backend/db');
 
 // ==================== AJOUTER PLUSIEURS COMMANDES ====================
 router.post('/multiples', async (req, res) => {
-  const { commandes } = req.body;
+  const { commandes, transport, payement } = req.body;
 
   if (!Array.isArray(commandes) || commandes.length === 0) {
     return res.status(400).json({ message: 'Aucune commande reçue.' });
@@ -30,7 +30,8 @@ router.post('/multiples', async (req, res) => {
 
       // 🔍 récupérer produit
       const [produitRows] = await connection.query(
-        `SELECT designation, COALESCE(quantite_stock,0) AS quantite_stock, COALESCE(longueur_par_rouleau,0) AS longueur_par_rouleau
+        `SELECT designation, COALESCE(quantite_stock,0) AS quantite_stock, 
+                COALESCE(longueur_par_rouleau,0) AS longueur_par_rouleau
          FROM produits WHERE reference = ?`,
         [produit_reference]
       );
@@ -46,7 +47,9 @@ router.post('/multiples', async (req, res) => {
       const isLaniere = designation.toLowerCase().includes('roul');
 
       let montant = 0;
+      let insertResult;
 
+      // ==================== PRODUIT LANIERE ====================
       if (isLaniere) {
         const qRouleaux = parseFloat(quantite_commande) || 0;
         const qMetres = parseFloat(metres_commandees) || 0;
@@ -61,15 +64,14 @@ router.post('/multiples', async (req, res) => {
           throw new Error(`Stock insuffisant: ${qRouleaux} rouleaux > ${stock}`);
         }
 
-        // ✅ correction ici
         const rouleauxUtilises = qRouleaux + (qMetres / longueurParRouleau);
         stock -= rouleauxUtilises;
 
-        // 💰 calcul montant
         const totalMetres = qRouleaux * longueurParRouleau + qMetres;
         montant = (totalMetres * parseFloat(prix_unitaire)).toFixed(2);
 
-        await connection.query(
+        // ✅ INSERT COMMANDE
+        const [result] = await connection.query(
           `INSERT INTO commandes 
           (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, prix_unitaire, montant, date_commande)
           VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
@@ -84,7 +86,10 @@ router.post('/multiples', async (req, res) => {
           ]
         );
 
+        insertResult = result;
+
       } else {
+        // ==================== PRODUIT NORMAL ====================
         const q = parseFloat(quantite_commande) || 0;
 
         if (q > stock) {
@@ -94,7 +99,7 @@ router.post('/multiples', async (req, res) => {
         stock -= q;
         montant = (q * parseFloat(prix_unitaire)).toFixed(2);
 
-        await connection.query(
+        const [result] = await connection.query(
           `INSERT INTO commandes 
           (client_id, produit_reference, quantite_commande, bl_num, prix_unitaire, montant, date_commande)
           VALUES (?, ?, ?, ?, ?, ?, NOW())`,
@@ -107,7 +112,24 @@ router.post('/multiples', async (req, res) => {
             montant,
           ]
         );
+
+        insertResult = result;
       }
+
+      // ==================== INSERT PAIEMENT ====================
+      const id_commande = insertResult.insertId;
+
+      await connection.query(
+        `INSERT INTO paiements 
+        (id_commande, id_client, transport, statut_paiement)
+        VALUES (?, ?, ?, ?)`,
+        [
+          id_commande,
+          client_id,
+          transport || 'Messagerie',   // valeur par défaut
+          payement || 'non_paye'
+        ]
+      );
 
       // 🔄 mise à jour stock
       await connection.query(
@@ -117,7 +139,7 @@ router.post('/multiples', async (req, res) => {
     }
 
     await connection.commit();
-    res.status(201).json({ message: 'Commandes enregistrées avec succès' });
+    res.status(201).json({ message: 'Commandes + paiements enregistrés avec succès' });
 
   } catch (error) {
     await connection.rollback();
