@@ -25,17 +25,19 @@ router.post('/multiples', async (req, res) => {
         payement
       } = cmd;
 
-      // ✅ sécurités
+      // ================= VALIDATIONS =================
       if (!client_id) throw new Error("client_id manquant !");
       if (!produit_reference) throw new Error("produit_reference manquant !");
 
       const prix = parseFloat(prix_unitaire) || 0;
 
-      // 🔍 produit
+      // ================= PRODUIT =================
       const [produitRows] = await connection.query(
-        `SELECT designation, COALESCE(quantite_stock,0) AS quantite_stock, 
+        `SELECT designation, 
+                COALESCE(quantite_stock,0) AS quantite_stock, 
                 COALESCE(longueur_par_rouleau,0) AS longueur_par_rouleau
-         FROM produits WHERE reference = ?`,
+         FROM produits 
+         WHERE reference = ?`,
         [produit_reference]
       );
 
@@ -47,10 +49,6 @@ router.post('/multiples', async (req, res) => {
       let stock = parseFloat(produit.quantite_stock) || 0;
       const longueur = parseFloat(produit.longueur_par_rouleau) || 0;
       const isLaniere = produit.designation.toLowerCase().includes('roul');
-
-      if (isLaniere && longueur === 0) {
-        throw new Error("Longueur par rouleau non définie");
-      }
 
       let montant = 0;
       let insertResult;
@@ -119,51 +117,72 @@ router.post('/multiples', async (req, res) => {
         insertResult = result;
       }
 
-      // ================= PAIEMENT =================
+      // ================= VALIDATION FK =================
       const id_commande = insertResult.insertId;
 
+      if (!id_commande) {
+        throw new Error("ID commande invalide (insertId null)");
+      }
+
+      const [check] = await connection.query(
+        "SELECT numCmd FROM commandes WHERE numCmd = ?",
+        [id_commande]
+      );
+
+      if (!check.length) {
+        throw new Error("Commande non trouvée avant paiement (FK issue)");
+      }
+
+      // ================= PAIEMENT =================
       const transportSafe =
         transport === "Honda" ? "Honda" : "Messagerie";
 
       const payementSafe =
         payement === "paye" ? "paye" : "non_paye";
 
-      console.log("PAIEMENT:", {
+      console.log("👉 PAIEMENT INSERT:", {
         id_commande,
         client_id,
         transportSafe,
         payementSafe,
       });
 
-      await connection.query(
-        `INSERT INTO paiements 
-        (id_commande, id_client, transport, statut_paiement)
-        VALUES (?, ?, ?, ?)`,
-        [
-          id_commande,
-          client_id,
-          transportSafe,
-          payementSafe,
-        ]
-      );
+      try {
+        await connection.query(
+          `INSERT INTO paiements 
+          (id_commande, id_client, transport, statut_paiement)
+          VALUES (?, ?, ?, ?)`,
+          [
+            id_commande,
+            client_id,
+            transportSafe,
+            payementSafe,
+          ]
+        );
+      } catch (err) {
+        console.error("❌ ERREUR INSERT PAIEMENT:", err.sqlMessage || err.message);
+        throw err;
+      }
 
       // ================= STOCK =================
       await connection.query(
-        `UPDATE produits SET quantite_stock = ? WHERE reference = ?`,
+        `UPDATE produits 
+         SET quantite_stock = ? 
+         WHERE reference = ?`,
         [parseFloat(stock.toFixed(2)), produit_reference]
       );
     }
 
     await connection.commit();
 
-    res.status(201).json({
+    return res.status(201).json({
       message: 'Commandes + paiements enregistrés avec succès',
     });
 
   } catch (error) {
     await connection.rollback();
-    console.error("ERREUR BACK:", error);
-    res.status(500).json({ message: error.message });
+    console.error("❌ ERREUR BACKEND:", error.message);
+    return res.status(500).json({ message: error.message });
   } finally {
     connection.release();
   }

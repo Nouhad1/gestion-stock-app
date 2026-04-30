@@ -86,6 +86,12 @@ const CommandesScreen = () => {
     return monthOk && clientOk;
   });
 
+  const showTransport =
+  clientId !== null && clientsAvecTransport.includes(Number(clientId));
+
+const showPayement =
+  clientId !== null && clientsAvecTransport.includes(Number(clientId));
+
   const totalMois = commandesFiltrees.reduce(
     (sum, item) => sum + (parseFloat(item.montant) || 0),
     0
@@ -97,10 +103,6 @@ const CommandesScreen = () => {
     newList.splice(index, 1);
     setCommandesMultiple(newList);
   };
-
-  const showTransport = clientsAvecTransport.includes(clientId);
-
-  const showPayement = clientsAvecTransport.includes(clientId);
 
   const onRefresh = async () => {
   setRefreshing(true);
@@ -136,24 +138,29 @@ const CommandesScreen = () => {
   }
 
   const item = {
-    bl_num: blNum,
-    client_id: clientId,
-    produit_reference: produitRef,
+  bl_num: blNum,
+  client_id: clientId,
+  produit_reference: produitRef,
 
-    quantite_commande: isLaniere
-      ? parseFloat(rouleaux) || 0
-      : parseFloat(quantite),
+  quantite_commande: isLaniere
+    ? parseFloat(rouleaux) || 0
+    : parseFloat(quantite),
 
-    metres_commandees: isLaniere
-      ? parseFloat(metres) || 0
-      : 0,
+  metres_commandees: isLaniere
+    ? parseFloat(metres) || 0
+    : 0,
 
-    prix_unitaire: parseFloat(prixUnitaire),
+  prix_unitaire: parseFloat(prixUnitaire),
 
-    // ✅ AJOUT ICI (TRÈS IMPORTANT)
-    transport: transport || null,
-    payement: payement || "non_paye",
-  };
+  // ✅ CORRECTION TRANSPORT / PAIEMENT
+  transport: showTransport
+    ? (transport === "Honda" ? "Honda" : "Messagerie")
+    : "Messagerie",
+
+  payement: showPayement
+    ? (payement === "paye" ? "paye" : "non_paye")
+    : "non_paye",
+};
 
   setCommandesMultiple((prev) => [...prev, item]);
 
@@ -164,6 +171,8 @@ const CommandesScreen = () => {
   setRouleaux("");
   setMetres("");
   setPrixUnitaire("");
+  setTransport("");
+setPayement("");
 };
 
   /* const handleSubmit = async () => {
