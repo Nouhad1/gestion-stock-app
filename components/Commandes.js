@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
+  RefreshControl,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -37,6 +38,8 @@ const CommandesScreen = () => {
   const [selectedProduits, setSelectedProduits] = useState(null);
   const [showClientList, setShowClientList] = useState(false);
   const [showProduitsList, setShowProduitsList] = useState(false);
+
+  const [refreshing, setRefreshing] = useState(false);
 
   const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
 
@@ -91,37 +94,59 @@ const CommandesScreen = () => {
     setCommandesMultiple(newList);
   };
 
+  const onRefresh = async () => {
+  setRefreshing(true);
+  try {
+    await fetchCommandes();
+  } catch (e) {
+    console.log("Erreur refresh:", e);
+  }
+  setRefreshing(false);
+};
+
   const handleAddProduct = () => {
-    if (!blNum || !clientId || !produitRef || !prixUnitaire) {
-      return Alert.alert("Erreur", "Veuillez remplir tous les champs");
-    }
+  if (!blNum || !clientId || !produitRef || !prixUnitaire) {
+    return Alert.alert("Erreur", "Veuillez remplir tous les champs");
+  }
 
-    const longueurParRouleau = 100;
+  if (isLaniere && !rouleaux && !metres) {
+    return Alert.alert("Erreur", "Entrer rouleaux ou mètres");
+  }
 
-    const q = isLaniere
-      ? (parseFloat(rouleaux) || 0) * longueurParRouleau +
-        (parseFloat(metres) || 0)
-      : parseFloat(quantite);
+  if (!isLaniere && !quantite) {
+    return Alert.alert("Erreur", "Entrer quantité");
+  }
 
-    const item = {
-      bl_num: blNum,
-      client_id: clientId,
-      produit_reference: produitRef,
-      quantite_commande: q,
-      prix_unitaire: parseFloat(prixUnitaire),
-      montant: (q * prixUnitaire).toFixed(2),
-    };
+  const item = {
+    bl_num: blNum,
+    client_id: clientId,
+    produit_reference: produitRef,
 
-    setCommandesMultiple((prev) => [...prev, item]);
+    // ✅ CORRECTION ICI
+    quantite_commande: isLaniere
+      ? parseFloat(rouleaux) || 0
+      : parseFloat(quantite),
 
-    // RESET
-    setProduitRef(null);
-    setProduitsSearch("");
-    setQuantite("");
-    setRouleaux("");
-    setMetres("");
-    setPrixUnitaire("");
+    metres_commandees: isLaniere
+      ? parseFloat(metres) || 0
+      : 0,
+
+    prix_unitaire: parseFloat(prixUnitaire),
   };
+
+  setCommandesMultiple((prev) => [...prev, item]);
+
+  // RESET
+  setProduitRef(null);
+  setProduitsSearch("");
+  setQuantite("");
+  setRouleaux("");
+  setMetres("");
+  setPrixUnitaire("");
+
+
+  
+};
 
   const handleSubmit = async () => {
     if (!commandesMultiple.length)
@@ -161,11 +186,15 @@ const CommandesScreen = () => {
       {activeTab === "nouvelle" ? (
         
         <FlatList
+         
           data={commandesMultiple}
           keyExtractor={(i, idx) => idx.toString()}
+          refreshControl={
+  <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+}
           ListHeaderComponent={
     
-
+            
       <View style={styles.card}>
         <View>
       <Text style={styles.label}>
@@ -311,7 +340,8 @@ const CommandesScreen = () => {
         {item.produit_reference}
       </Text>
       <Text>
-        {item.quantite_commande} × {item.prix_unitaire}
+        {item.quantite_commande > 0 && `${item.quantite_commande} rouleaux `}
+        {item.metres_commandees > 0 && `+ ${item.metres_commandees} m`}
       </Text>
       <Text style={{ color: "#16a34a" }}>
         {item.montant} DH
@@ -392,7 +422,10 @@ const CommandesScreen = () => {
 
           {/* TABLE DESIGN PRO */}
           <View style={styles.historyContainer}>
-            <ScrollView horizontal>
+            <ScrollView horizontal  refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }>
+              
               <View style={styles.tableWrapper}>
                 <View style={styles.tableHeader}>
                   {["Produit", "Prix", "Qté", "Bon Livraison N°", "Date commande"].map((t, i) => (
