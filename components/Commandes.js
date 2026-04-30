@@ -188,6 +188,8 @@ setPayement("");
     fetchCommandes();
   }; */
    const handleSubmit = async () => {
+
+    console.log("📤 ENVOI COMMANDE:", commandesMultiple);
   if (!commandesMultiple.length)
     return Alert.alert("Erreur", "Aucune commande");
 

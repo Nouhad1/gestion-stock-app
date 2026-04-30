@@ -5,6 +5,8 @@ const db = require("../backend/db");
 router.post("/multiples", async (req, res) => {
   const { commandes } = req.body;
 
+  console.log("🚀 REQUÊTE REÇUE:", JSON.stringify(commandes));
+
   if (!Array.isArray(commandes) || commandes.length === 0) {
     return res.status(400).json({ message: "Aucune commande reçue." });
   }
@@ -14,7 +16,7 @@ router.post("/multiples", async (req, res) => {
 
   try {
     for (const cmd of commandes) {
-      console.log("📦 CMD REÇUE:", cmd);
+      console.log("📦 CMD:", cmd);
 
       const {
         client_id,
@@ -53,24 +55,15 @@ router.post("/multiples", async (req, res) => {
       const isLaniere = produit.designation.toLowerCase().includes("roul");
 
       let montant = 0;
+
+      // ================= INSERT COMMANDE =================
       let insertResult;
 
-      // ================= LANIERE =================
       if (isLaniere) {
         const qRouleaux = Number(quantite_commande) || 0;
         const qMetres = Number(metres_commandees) || 0;
 
-        if (!qRouleaux && !qMetres) {
-          throw new Error("Quantité invalide lanière");
-        }
-
-        const max = stock * longueur;
-
-        if (qMetres > max) throw new Error("Stock insuffisant mètres");
-        if (qRouleaux > stock) throw new Error("Stock insuffisant rouleaux");
-
         const totalMetres = qRouleaux * longueur + qMetres;
-        stock -= qRouleaux + qMetres / longueur;
 
         montant = (totalMetres * prix).toFixed(2);
 
@@ -90,16 +83,9 @@ router.post("/multiples", async (req, res) => {
         );
 
         insertResult = result;
-      }
-
-      // ================= NORMAL =================
-      else {
+      } else {
         const q = Number(quantite_commande) || 0;
 
-        if (!q) throw new Error("Quantité invalide");
-        if (q > stock) throw new Error("Stock insuffisant");
-
-        stock -= q;
         montant = (q * prix).toFixed(2);
 
         const [result] = await connection.query(
@@ -119,62 +105,61 @@ router.post("/multiples", async (req, res) => {
         insertResult = result;
       }
 
-      // ================= ID COMMANDE =================
+      // ================= DEBUG INSERT COMMANDE =================
+      console.log("🧾 INSERT RESULT:", insertResult);
+
       const id_commande = insertResult.insertId;
+
+      if (!id_commande) {
+        throw new Error("insertId NULL → commande non créée");
+      }
 
       console.log("🧾 ID COMMANDE:", id_commande);
 
-      if (!id_commande || isNaN(id_commande)) {
-        throw new Error("ID commande invalide");
-      }
-
       // ================= PAIEMENT =================
-      const transportSafe =
-        transport === "Honda" ? "Honda" : "Messagerie";
+      const transportSafe = transport === "Honda" ? "Honda" : "Messagerie";
+      const payementSafe = payement === "paye" ? "paye" : "non_paye";
 
-      const payementSafe =
-        payement === "paye" ? "paye" : "non_paye";
-
-      console.log("👉 INSERT PAIEMENT:", {
+      console.log("💰 INSERT PAIEMENT:", {
         id_commande,
         client_id,
         transportSafe,
         payementSafe,
       });
 
-      const [paiementResult] = await connection.query(
-        `INSERT INTO paiements
-        (id_commande, id_client, transport, statut_paiement)
-        VALUES (?, ?, ?, ?)`,
-        [
-          Number(id_commande),
-          Number(client_id),
-          transportSafe,
-          payementSafe,
-        ]
-      );
+      try {
+        const [paiementResult] = await connection.query(
+          `INSERT INTO paiements
+          (id_commande, id_client, transport, statut_paiement)
+          VALUES (?, ?, ?, ?)`,
+          [
+            Number(id_commande),
+            Number(client_id),
+            transportSafe,
+            payementSafe,
+          ]
+        );
 
-      console.log("💰 Paiement OK ID:", paiementResult.insertId);
-
-      // ================= STOCK =================
-      await connection.query(
-        `UPDATE produits
-         SET quantite_stock = ?
-         WHERE reference = ?`,
-        [Number(stock.toFixed(2)), produit_reference]
-      );
+        console.log("✅ PAIEMENT OK:", paiementResult.insertId);
+      } catch (err) {
+        console.log("❌ ERREUR PAIEMENT SQL:");
+        console.log(err.sqlMessage || err.message);
+        throw err;
+      }
     }
 
     await connection.commit();
 
     return res.status(201).json({
-      message: "Commandes + paiements enregistrés avec succès",
+      message: "OK - commandes + paiements enregistrés",
     });
 
   } catch (error) {
     await connection.rollback();
 
-    console.error("❌ ERREUR BACKEND COMPLET:", error.sqlMessage || error.message);
+    console.log("❌ FULL ERROR:");
+    console.log(error.sqlMessage || error.message);
+    console.log(error);
 
     return res.status(500).json({
       message: error.sqlMessage || error.message,
