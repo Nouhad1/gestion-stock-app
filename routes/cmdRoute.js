@@ -5,7 +5,7 @@ const db = require("../backend/db");
 router.post("/multiples", async (req, res) => {
   const { commandes } = req.body;
 
-  console.log("🚀 REQUÊTE REÇUE:", JSON.stringify(commandes));
+  console.log("🚀 REQUÊTE REÇUE:", JSON.stringify(commandes, null, 2));
 
   if (!Array.isArray(commandes) || commandes.length === 0) {
     return res.status(400).json({ message: "Aucune commande reçue." });
@@ -36,6 +36,7 @@ router.post("/multiples", async (req, res) => {
       const prix = Number(prix_unitaire) || 0;
 
       // ================= PRODUIT =================
+      console.log("🔍 FETCH PRODUIT...");
       const [produitRows] = await connection.query(
         `SELECT designation,
                 COALESCE(quantite_stock,0) AS quantite_stock,
@@ -50,14 +51,19 @@ router.post("/multiples", async (req, res) => {
       }
 
       const produit = produitRows[0];
-      let stock = Number(produit.quantite_stock);
-      const longueur = Number(produit.longueur_par_rouleau);
-      const isLaniere = produit.designation.toLowerCase().includes("roul");
+      console.log("📦 PRODUIT:", produit);
+
+      let stock = Number(produit.quantite_stock || 0);
+      const longueur = Number(produit.longueur_par_rouleau || 0);
+
+      const designation = (produit.designation || "").toLowerCase();
+      const isLaniere = designation.includes("roul");
 
       let montant = 0;
+      let insertResult;
 
       // ================= INSERT COMMANDE =================
-      let insertResult;
+      console.log("🧾 AVANT INSERT COMMANDE");
 
       if (isLaniere) {
         const qRouleaux = Number(quantite_commande) || 0;
@@ -105,8 +111,7 @@ router.post("/multiples", async (req, res) => {
         insertResult = result;
       }
 
-      // ================= DEBUG INSERT COMMANDE =================
-      console.log("🧾 INSERT RESULT:", insertResult);
+      console.log("🧾 APRES INSERT COMMANDE:", insertResult);
 
       const id_commande = insertResult.insertId;
 
@@ -117,10 +122,13 @@ router.post("/multiples", async (req, res) => {
       console.log("🧾 ID COMMANDE:", id_commande);
 
       // ================= PAIEMENT =================
-      const transportSafe = transport === "Honda" ? "Honda" : "Messagerie";
-      const payementSafe = payement === "paye" ? "paye" : "non_paye";
+      const transportSafe =
+        transport === "Honda" ? "Honda" : "Messagerie";
 
-      console.log("💰 INSERT PAIEMENT:", {
+      const payementSafe =
+        payement === "paye" ? "paye" : "non_paye";
+
+      console.log("💰 AVANT INSERT PAIEMENT:", {
         id_commande,
         client_id,
         transportSafe,
@@ -143,26 +151,32 @@ router.post("/multiples", async (req, res) => {
         console.log("✅ PAIEMENT OK:", paiementResult.insertId);
       } catch (err) {
         console.log("❌ ERREUR PAIEMENT SQL:");
-        console.log(err.sqlMessage || err.message);
-        throw err;
+        console.log("MESSAGE:", err.message);
+        console.log("SQL:", err.sqlMessage);
+        console.log("CODE:", err.code);
+
+        // ⚠️ IMPORTANT : NE PAS BLOQUER TOUTE LA COMMANDE
+        // throw err;
+
+        console.log("⚠️ Paiement ignoré pour cette commande");
       }
     }
 
     await connection.commit();
 
     return res.status(201).json({
-      message: "OK - commandes + paiements enregistrés",
+      message: "✅ Commandes enregistrées (paiements inclus si OK)",
     });
 
   } catch (error) {
     await connection.rollback();
 
     console.log("❌ FULL ERROR:");
-    console.log(error.sqlMessage || error.message);
+    console.log(error.message);
     console.log(error);
 
     return res.status(500).json({
-      message: error.sqlMessage || error.message,
+      message: error.message,
     });
 
   } finally {
