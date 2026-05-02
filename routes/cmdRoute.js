@@ -13,40 +13,34 @@ router.post("/multiples", async (req, res) => {
 
   try {
     for (const cmd of commandes) {
-      const {
-        client_id,
-        produit_reference,
-        quantite_commande,
-        metres_commandees,
-        bl_num,
-        prix_unitaire,
-        transport,
-        payement,
-      } = cmd;
 
-      // ===============================
-      // 🔥 SAFE VALUES (ANTI BUG NULL)
-      // ===============================
+      // 🔥 FORCE DESTRUCTURING SAFE
+      const client_id = cmd.client_id ?? null;
+      const produit_reference = cmd.produit_reference ?? null;
+      const quantite_commande = Number(cmd.quantite_commande) || 0;
+      const metres_commandees = Number(cmd.metres_commandees) || 0;
+      const bl_num = cmd.bl_num ?? null;
+      const prix_unitaire = Number(cmd.prix_unitaire) || 0;
 
-      const prix = Number(prix_unitaire) || 0;
-
-      const transportSafe =
-        typeof transport === "string"
-          ? transport.trim().toLowerCase() === "honda"
-            ? "Honda"
-            : "Messagerie"
+      // 🔥 HARD SAFE VALUES
+      const transport =
+        String(cmd.transport || "").trim().toLowerCase() === "honda"
+          ? "Honda"
           : "Messagerie";
 
-      const paiementSafe =
-        typeof payement === "string"
-          ? payement.trim().toLowerCase() === "paye"
-            ? "paye"
-            : "non_paye"
+      const statut_paiement =
+        String(cmd.payement || "").trim().toLowerCase() === "paye"
+          ? "paye"
           : "non_paye";
 
-      // ===============================
-      // PRODUIT INFO
-      // ===============================
+      // 🔥 DEBUG CRUCIAL
+      console.log("📦 FINAL INSERT VALUES:", {
+        transport,
+        statut_paiement,
+        client_id,
+        produit_reference,
+      });
+
       const [produitRows] = await connection.query(
         `SELECT designation, COALESCE(longueur_par_rouleau,0) AS longueur
          FROM produits
@@ -66,73 +60,54 @@ router.post("/multiples", async (req, res) => {
 
       let montant = 0;
 
-      // ===============================
-      // CALCUL MONTANT
-      // ===============================
       if (isLaniere) {
-        const qRouleaux = Number(quantite_commande) || 0;
-        const qMetres = Number(metres_commandees) || 0;
-
         const totalMetres =
-          qRouleaux * produit.longueur + qMetres;
+          quantite_commande * produit.longueur + metres_commandees;
 
-        montant = (totalMetres * prix).toFixed(2);
+        montant = totalMetres * prix_unitaire;
 
         await connection.query(
           `INSERT INTO commandes
-          (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, prix_unitaire, montant, transport, statut_paiement, date_commande)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+          (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, prix_unitaire, transport, statut_paiement)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             client_id,
             produit_reference,
-            qRouleaux,
-            qMetres,
-            bl_num || null,
-            prix,
+            quantite_commande,
+            metres_commandees,
+            bl_num,
             montant,
-            transportSafe,
-            paiementSafe,
+            prix_unitaire,
+            transport,
+            statut_paiement,
           ]
         );
       } else {
-        const q = Number(quantite_commande) || 0;
-
-        montant = (q * prix).toFixed(2);
+        montant = quantite_commande * prix_unitaire;
 
         await connection.query(
           `INSERT INTO commandes
-          (client_id, produit_reference, quantite_commande, bl_num, prix_unitaire, montant, transport, statut_paiement, date_commande)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+          (client_id, produit_reference, quantite_commande, bl_num, montant, prix_unitaire, transport, statut_paiement)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             client_id,
             produit_reference,
-            q,
-            bl_num || null,
-            prix,
+            quantite_commande,
+            bl_num,
             montant,
-            transportSafe,
-            paiementSafe,
+            prix_unitaire,
+            transport,
+            statut_paiement,
           ]
         );
       }
-
-      // ===============================
-      // DEBUG (OPTIONNEL)
-      // ===============================
-      console.log("🚚 transport:", transportSafe);
-      console.log("💰 paiement:", paiementSafe);
     }
 
-    return res.status(201).json({
-      message: "✅ Commandes enregistrées avec succès",
-    });
+    res.status(201).json({ message: "OK" });
 
-  } catch (error) {
-    console.log("❌ ERREUR BACKEND:", error.message);
-
-    return res.status(500).json({
-      message: error.message,
-    });
+  } catch (err) {
+    console.log("❌ ERROR:", err.message);
+    res.status(500).json({ message: err.message });
 
   } finally {
     connection.release();
