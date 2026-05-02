@@ -38,27 +38,37 @@ router.post("/multiples", async (req, res) => {
       }
 
       const produit = produitRows[0];
+
       const isLaniere = (produit.designation || "")
         .toLowerCase()
         .includes("roul");
 
       let montant = 0;
 
-      // ✅ CORRECTION TRANSPORT (NE PAS ÉCRASER)
-      const transportClean = (transport || "").trim();
-      const transportSafe = ["Honda", "Messagerie"].includes(transportClean)
-        ? transportClean
-        : "Messagerie";
+      // 🔥 NORMALISATION TRANSPORT (CORRECTION FINALE)
+      const transportClean = (transport || "")
+        .trim()
+        .toLowerCase();
 
-      // ✅ CORRECTION PAIEMENT
-      const payementClean = (payement || "").trim();
-      const paiementSafe = ["paye", "non_paye"].includes(payementClean)
-        ? payementClean
-        : "non_paye";
+      const transportSafe =
+        transportClean === "honda"
+          ? "Honda"
+          : "Messagerie";
+
+      // 🔥 NORMALISATION PAIEMENT
+      const payementClean = (payement || "")
+        .trim()
+        .toLowerCase();
+
+      const paiementSafe =
+        payementClean === "paye"
+          ? "paye"
+          : "non_paye";
 
       // 🧪 DEBUG (tu peux supprimer après test)
-      console.log("🚚 transport reçu:", transport);
-      console.log("🚚 transport safe:", transportSafe);
+      console.log("🚚 RAW transport:", `"${transport}"`);
+      console.log("🚚 CLEAN transport:", transportClean);
+      console.log("🚚 FINAL transport:", transportSafe);
 
       if (isLaniere) {
         const qRouleaux = Number(quantite_commande) || 0;
@@ -109,11 +119,12 @@ router.post("/multiples", async (req, res) => {
     }
 
     return res.status(201).json({
-      message: "✅ Commandes enregistrées avec paiement",
+      message: "✅ Commandes enregistrées avec succès",
     });
 
   } catch (error) {
-    console.log("❌ ERREUR:", error.message);
+    console.log("❌ ERREUR BACKEND:", error.message);
+
     return res.status(500).json({
       message: error.message,
     });
