@@ -24,8 +24,29 @@ router.post("/multiples", async (req, res) => {
         payement,
       } = cmd;
 
+      // ===============================
+      // 🔥 SAFE VALUES (ANTI BUG NULL)
+      // ===============================
+
       const prix = Number(prix_unitaire) || 0;
 
+      const transportSafe =
+        typeof transport === "string"
+          ? transport.trim().toLowerCase() === "honda"
+            ? "Honda"
+            : "Messagerie"
+          : "Messagerie";
+
+      const paiementSafe =
+        typeof payement === "string"
+          ? payement.trim().toLowerCase() === "paye"
+            ? "paye"
+            : "non_paye"
+          : "non_paye";
+
+      // ===============================
+      // PRODUIT INFO
+      // ===============================
       const [produitRows] = await connection.query(
         `SELECT designation, COALESCE(longueur_par_rouleau,0) AS longueur
          FROM produits
@@ -45,44 +66,9 @@ router.post("/multiples", async (req, res) => {
 
       let montant = 0;
 
-      // ✅ FIX TRANSPORT ULTRA IMPORTANT
-      let transportSafe = null;
-
-      if (typeof transport === "string" && transport.trim() !== "") {
-        const t = transport.trim().toLowerCase();
-
-        if (t === "honda") {
-          transportSafe = "Honda";
-        } else if (t === "messagerie") {
-          transportSafe = "Messagerie";
-        }
-      }
-
-      // si rien envoyé → on laisse NULL (important)
-      if (!transportSafe) {
-        transportSafe = null;
-      }
-
-      // PAYEMENT SAFE
-      let paiementSafe = null;
-
-      if (typeof payement === "string" && payement.trim() !== "") {
-        const p = payement.trim().toLowerCase();
-
-        if (p === "paye") {
-          paiementSafe = "paye";
-        } else if (p === "non_paye") {
-          paiementSafe = "non_paye";
-        }
-      }
-
-      if (!paiementSafe) {
-        paiementSafe = null;
-      }
-
-      console.log("🚚 FINAL transport:", transportSafe);
-      console.log("💰 FINAL paiement:", paiementSafe);
-
+      // ===============================
+      // CALCUL MONTANT
+      // ===============================
       if (isLaniere) {
         const qRouleaux = Number(quantite_commande) || 0;
         const qMetres = Number(metres_commandees) || 0;
@@ -129,6 +115,12 @@ router.post("/multiples", async (req, res) => {
           ]
         );
       }
+
+      // ===============================
+      // DEBUG (OPTIONNEL)
+      // ===============================
+      console.log("🚚 transport:", transportSafe);
+      console.log("💰 paiement:", paiementSafe);
     }
 
     return res.status(201).json({
