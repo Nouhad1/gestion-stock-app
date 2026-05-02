@@ -45,30 +45,43 @@ router.post("/multiples", async (req, res) => {
 
       let montant = 0;
 
-      // 🔥 NORMALISATION TRANSPORT (CORRECTION FINALE)
-      const transportClean = (transport || "")
-        .trim()
-        .toLowerCase();
+      // ✅ FIX TRANSPORT ULTRA IMPORTANT
+      let transportSafe = null;
 
-      const transportSafe =
-        transportClean === "honda"
-          ? "Honda"
-          : "Messagerie";
+      if (typeof transport === "string" && transport.trim() !== "") {
+        const t = transport.trim().toLowerCase();
 
-      // 🔥 NORMALISATION PAIEMENT
-      const payementClean = (payement || "")
-        .trim()
-        .toLowerCase();
+        if (t === "honda") {
+          transportSafe = "Honda";
+        } else if (t === "messagerie") {
+          transportSafe = "Messagerie";
+        }
+      }
 
-      const paiementSafe =
-        payementClean === "paye"
-          ? "paye"
-          : "non_paye";
+      // si rien envoyé → on laisse NULL (important)
+      if (!transportSafe) {
+        transportSafe = null;
+      }
 
-      // 🧪 DEBUG (tu peux supprimer après test)
-      console.log("🚚 RAW transport:", `"${transport}"`);
-      console.log("🚚 CLEAN transport:", transportClean);
+      // PAYEMENT SAFE
+      let paiementSafe = null;
+
+      if (typeof payement === "string" && payement.trim() !== "") {
+        const p = payement.trim().toLowerCase();
+
+        if (p === "paye") {
+          paiementSafe = "paye";
+        } else if (p === "non_paye") {
+          paiementSafe = "non_paye";
+        }
+      }
+
+      if (!paiementSafe) {
+        paiementSafe = null;
+      }
+
       console.log("🚚 FINAL transport:", transportSafe);
+      console.log("💰 FINAL paiement:", paiementSafe);
 
       if (isLaniere) {
         const qRouleaux = Number(quantite_commande) || 0;
