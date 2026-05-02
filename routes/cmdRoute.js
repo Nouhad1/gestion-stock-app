@@ -44,11 +44,21 @@ router.post("/multiples", async (req, res) => {
 
       let montant = 0;
 
-      const transportSafe =
-        transport === "Honda" ? "Honda" : "Messagerie";
+      // ✅ CORRECTION TRANSPORT (NE PAS ÉCRASER)
+      const transportClean = (transport || "").trim();
+      const transportSafe = ["Honda", "Messagerie"].includes(transportClean)
+        ? transportClean
+        : "Messagerie";
 
-      const paiementSafe =
-        payement === "paye" ? "paye" : "non_paye";
+      // ✅ CORRECTION PAIEMENT
+      const payementClean = (payement || "").trim();
+      const paiementSafe = ["paye", "non_paye"].includes(payementClean)
+        ? payementClean
+        : "non_paye";
+
+      // 🧪 DEBUG (tu peux supprimer après test)
+      console.log("🚚 transport reçu:", transport);
+      console.log("🚚 transport safe:", transportSafe);
 
       if (isLaniere) {
         const qRouleaux = Number(quantite_commande) || 0;

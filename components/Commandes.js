@@ -116,7 +116,7 @@ const showPayement =
 
 
 
-  const handleAddProduct = () => {
+ const handleAddProduct = () => {
   if (!blNum || !clientId || !produitRef || !prixUnitaire) {
     return Alert.alert("Erreur", "Veuillez remplir tous les champs");
   }
@@ -138,29 +138,32 @@ const showPayement =
   }
 
   const item = {
-  bl_num: blNum,
-  client_id: clientId,
-  produit_reference: produitRef,
+    bl_num: blNum,
+    client_id: clientId,
+    produit_reference: produitRef,
 
-  quantite_commande: isLaniere
-    ? parseFloat(rouleaux) || 0
-    : parseFloat(quantite),
+    quantite_commande: isLaniere
+      ? parseFloat(rouleaux) || 0
+      : parseFloat(quantite),
 
-  metres_commandees: isLaniere
-    ? parseFloat(metres) || 0
-    : 0,
+    metres_commandees: isLaniere
+      ? parseFloat(metres) || 0
+      : 0,
 
-  prix_unitaire: parseFloat(prixUnitaire),
+    prix_unitaire: parseFloat(prixUnitaire),
 
-  // ✅ CORRECTION TRANSPORT / PAIEMENT
-  transport: showTransport
-    ? (transport === "Honda" ? "Honda" : "Messagerie")
-    : "Messagerie",
+    // ✅ CORRECTION ICI (IMPORTANT)
+    transport: showTransport
+      ? (transport || "Messagerie")
+      : "Messagerie",
 
-  payement: showPayement
-    ? (payement === "paye" ? "paye" : "non_paye")
-    : "non_paye",
-};
+    payement: showPayement
+      ? (payement || "non_paye")
+      : "non_paye",
+  };
+
+  console.log("🚚 transport choisi:", transport);
+  console.log("💰 paiement choisi:", payement);
 
   setCommandesMultiple((prev) => [...prev, item]);
 
@@ -172,7 +175,7 @@ const showPayement =
   setMetres("");
   setPrixUnitaire("");
   setTransport("");
-setPayement("");
+  setPayement("");
 };
 
   /* const handleSubmit = async () => {
