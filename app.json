@@ -16,7 +16,7 @@
     "platforms": ["android", "ios"],
     "android": {
       "package": "com.bluestreck.gestionstock.app",
-      "versionCode": 45,
+      "versionCode": 46,
       "icon": "./assets/logo-modified.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo-modified.png",
@@ -25,7 +25,7 @@
     },
     "ios": {
   "bundleIdentifier": "com.bluestreck.gestionstock.app",
-  "buildNumber": "13",
+  "buildNumber": "14",
   "supportsTablet": true,
   "infoPlist": {
     "ITSAppUsesNonExemptEncryption": false
