@@ -374,7 +374,7 @@ const handleAddProduct = () => {
         </TouchableOpacity>
 
         {/* TRANSPORT */}
-{showTransport && (
+{/*  {showTransport && (
   <>
     <Text style={styles.label}>Choisir le transport</Text>
 
@@ -391,11 +391,11 @@ const handleAddProduct = () => {
 </Picker>
     </View>
   </>
-)}
+)} */}
 
 {/* PAIEMENT */}
-{showPayement && (
-  <>
+  {/* {showPayement && (
+  <>  
     <Text style={styles.label}>Statut du paiement</Text>
 
     <View style={styles.dropdown}>
@@ -405,16 +405,17 @@ const handleAddProduct = () => {
     console.log("💰 paiement selected:", value);
     setStatutPaiement(value);
   }}
->
-  <Picker.Item label="Non payé" value="non_paye" />
+> 
+   <Picker.Item label="Non payé" value="non_paye" />
   <Picker.Item label="Payé" value="paye" />
 </Picker>
     </View>
   </>
-)}
+)
+} */}
       </View>
     </View>
-  }
+  } 
   renderItem={({ item, index }) => (
   <View style={styles.itemRow}>
     <View style={{ flex: 1 }}>
@@ -422,12 +423,16 @@ const handleAddProduct = () => {
         {item.produit_reference}
       </Text>
       <Text>
-        {item.quantite_commande > 0 && item.quantite_commande}
+        {/* {item.quantite_commande > 0 && item.quantite_commande}
         {/* {item.quantite_commande > 0 && `${item.quantite_commande} rouleaux `} */}
-        {/* {item.metres_commandees > 0 && `+ ${item.metres_commandees} m`} */}
+        {/* {item.metres_commandees > 0 && `+ ${item.metres_commandees} m`} */} 
+
+         <Text style={{ color: "#64748b", fontSize: 12 }}>
+        {item.prix_unitaire} × {item.quantite_commande} ={" "}
+        <Text style={{ fontWeight: "bold", color: "#16a34a" }}>
+          {(item.prix_unitaire * item.quantite_commande).toFixed(2)} DH
+        </Text>
       </Text>
-      <Text style={{ color: "#16a34a" }}>
-        {item.montant} DH
       </Text>
     </View>
 
