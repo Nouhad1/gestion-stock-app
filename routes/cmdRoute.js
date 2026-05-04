@@ -14,8 +14,10 @@ router.post("/multiples", async (req, res) => {
   try {
     for (const cmd of commandes) {
 
-      console.log("📥 CMD REÇU:", cmd);
+      // 🔍 DEBUG RÉCEPTION
+      console.log("📥 CMD REÇU:", JSON.stringify(cmd, null, 2));
 
+      // ✅ SAFE EXTRACTION
       const client_id = cmd.client_id ?? null;
       const produit_reference = cmd.produit_reference ?? null;
       const quantite_commande = Number(cmd.quantite_commande) || 0;
@@ -23,23 +25,29 @@ router.post("/multiples", async (req, res) => {
       const bl_num = cmd.bl_num ?? null;
       const prix_unitaire = Number(cmd.prix_unitaire) || 0;
 
-      // ✅ TRANSPORT FIX
-      const transport =
-        String(cmd.transport || "").trim().toLowerCase() === "honda"
-          ? "Honda"
-          : "Messagerie";
+      // ✅ TRANSPORT SÉCURISÉ (anti NULL)
+      let transport = "Messagerie";
+      if (cmd.transport) {
+        const t = String(cmd.transport).trim().toLowerCase();
+        if (t === "honda") transport = "Honda";
+        if (t === "messagerie") transport = "Messagerie";
+      }
 
-      // ✅ PAIEMENT FIX (IMPORTANT)
-      const statut_paiement =
-        String(cmd.statut_paiement || "").trim().toLowerCase() === "paye"
-          ? "paye"
-          : "non_paye";
+      // ✅ PAIEMENT SÉCURISÉ (anti NULL)
+      let statut_paiement = "non_paye";
+      if (cmd.statut_paiement) {
+        const p = String(cmd.statut_paiement).trim().toLowerCase();
+        if (p === "paye") statut_paiement = "paye";
+        if (p === "non_paye") statut_paiement = "non_paye";
+      }
 
-      console.log("📦 INSERT:", {
+      // 🔍 DEBUG AVANT INSERT
+      console.log("📦 INSERT VALUES:", {
         transport,
         statut_paiement,
       });
 
+      // 🔍 PRODUIT
       const [produitRows] = await connection.query(
         `SELECT designation, COALESCE(longueur_par_rouleau,0) AS longueur
          FROM produits
@@ -59,6 +67,9 @@ router.post("/multiples", async (req, res) => {
 
       let montant = 0;
 
+      // =========================
+      // ✅ INSERT LANIÈRE
+      // =========================
       if (isLaniere) {
         const totalMetres =
           quantite_commande * produit.longueur + metres_commandees;
@@ -81,7 +92,12 @@ router.post("/multiples", async (req, res) => {
             statut_paiement,
           ]
         );
-      } else {
+      }
+
+      // =========================
+      // ✅ INSERT NORMAL
+      // =========================
+      else {
         montant = quantite_commande * prix_unitaire;
 
         await connection.query(
@@ -102,7 +118,7 @@ router.post("/multiples", async (req, res) => {
       }
     }
 
-    res.status(201).json({ message: "OK" });
+    res.status(201).json({ message: "Commande enregistrée avec succès" });
 
   } catch (err) {
     console.log("❌ ERROR:", err.message);

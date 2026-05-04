@@ -378,24 +378,25 @@ const handleAddProduct = () => {
         />
 
 
-        {/* TRANSPORT */}
+{/* TRANSPORT */}
 {showTransport && (
   <>
     <Text style={styles.label}>Choisir le transport</Text>
 
     <View style={styles.dropdown}>
       <Picker
-  selectedValue={statutPaiement}
-  onValueChange={(value) => setStatutPaiement(value)}
->
-  <Picker.Item label="Sélectionner" value="" />
-  <Picker.Item label="Payé" value="paye" />
-  <Picker.Item label="Non payé" value="non_paye" />
-</Picker>
+        selectedValue={transport}
+        onValueChange={(value) => setTransport(value)}
+      >
+        <Picker.Item label="Sélectionner transport" value="" />
+        <Picker.Item label="MESSAGERIE" value="Messagerie" />
+        <Picker.Item label="HONDA" value="Honda" />
+      </Picker>
     </View>
   </>
 )}
 
+{/* PAIEMENT */}
 {/* PAIEMENT */}
 {showPayement && (
   <>
@@ -403,8 +404,8 @@ const handleAddProduct = () => {
 
     <View style={styles.dropdown}>
       <Picker
-        selectedValue={payement}
-        onValueChange={(value) => setPayement(value)}
+        selectedValue={statutPaiement}
+        onValueChange={(value) => setStatutPaiement(value)}
       >
         <Picker.Item label="Sélectionner" value="" />
         <Picker.Item label="Payé" value="paye" />
