@@ -14,7 +14,8 @@ router.post("/multiples", async (req, res) => {
   try {
     for (const cmd of commandes) {
 
-      // 🔥 FORCE DESTRUCTURING SAFE
+      console.log("📥 CMD REÇU:", cmd);
+
       const client_id = cmd.client_id ?? null;
       const produit_reference = cmd.produit_reference ?? null;
       const quantite_commande = Number(cmd.quantite_commande) || 0;
@@ -22,23 +23,21 @@ router.post("/multiples", async (req, res) => {
       const bl_num = cmd.bl_num ?? null;
       const prix_unitaire = Number(cmd.prix_unitaire) || 0;
 
-      // 🔥 HARD SAFE VALUES
+      // ✅ TRANSPORT FIX
       const transport =
         String(cmd.transport || "").trim().toLowerCase() === "honda"
           ? "Honda"
           : "Messagerie";
 
+      // ✅ PAIEMENT FIX (IMPORTANT)
       const statut_paiement =
-        String(cmd.payement || "").trim().toLowerCase() === "paye"
+        String(cmd.statut_paiement || "").trim().toLowerCase() === "paye"
           ? "paye"
           : "non_paye";
 
-      // 🔥 DEBUG CRUCIAL
-      console.log("📦 FINAL INSERT VALUES:", {
+      console.log("📦 INSERT:", {
         transport,
         statut_paiement,
-        client_id,
-        produit_reference,
       });
 
       const [produitRows] = await connection.query(

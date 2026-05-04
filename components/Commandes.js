@@ -42,7 +42,7 @@ const CommandesScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const [transport, setTransport] = useState("");
-  const [payement, setPayement] = useState("");
+  const [statutPaiement, setStatutPaiement] = useState("");
   const clientsAvecTransport = [209, 221, 281, 215];
 
   const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
@@ -116,7 +116,7 @@ const showPayement =
 
 
 
- const handleAddProduct = () => {
+const handleAddProduct = () => {
   if (!blNum || !clientId || !produitRef || !prixUnitaire) {
     return Alert.alert("Erreur", "Veuillez remplir tous les champs");
   }
@@ -133,7 +133,7 @@ const showPayement =
     return Alert.alert("Erreur", "Choisir le transport");
   }
 
-  if (showPayement && !payement) {
+  if (showPayement && !statutPaiement) {
     return Alert.alert("Erreur", "Choisir le paiement");
   }
 
@@ -152,30 +152,26 @@ const showPayement =
 
     prix_unitaire: parseFloat(prixUnitaire),
 
-    // ✅ CORRECTION ICI (IMPORTANT)
     transport: showTransport
-      ? (transport || "Messagerie")
+      ? transport
       : "Messagerie",
 
-    payement: showPayement
-      ? (payement || "non_paye")
+    statut_paiement: showPayement
+      ? statutPaiement
       : "non_paye",
   };
 
-  console.log("🚚 transport choisi:", transport);
-  console.log("💰 paiement choisi:", payement);
+  console.log("🧪 ITEM AJOUTÉ:", item);
 
   setCommandesMultiple((prev) => [...prev, item]);
 
-  // RESET uniquement produit
+  // reset produit seulement
   setProduitRef(null);
   setProduitsSearch("");
   setQuantite("");
   setRouleaux("");
   setMetres("");
   setPrixUnitaire("");
-  setTransport("");
-  setPayement("");
 };
 
   /* const handleSubmit = async () => {
@@ -191,14 +187,14 @@ const showPayement =
     fetchCommandes();
   }; */
    const handleSubmit = async () => {
+  console.log("📤 ENVOI FINAL:", JSON.stringify(commandesMultiple, null, 2));
 
-    console.log("📤 ENVOI COMMANDE:", commandesMultiple);
   if (!commandesMultiple.length)
     return Alert.alert("Erreur", "Aucune commande");
 
   try {
     await axios.post(`${API_URL}/commandes/multiples`, {
-      commandes: commandesMultiple, // ✅ contient déjà transport + paiement
+      commandes: commandesMultiple,
     });
 
     Alert.alert("Succès", "Commande enregistrée");
@@ -206,7 +202,7 @@ const showPayement =
     setCommandesMultiple([]);
     setBlNum("");
     setTransport("");
-    setPayement("");
+    setStatutPaiement("");
 
     fetchCommandes();
   } catch (error) {
@@ -389,13 +385,13 @@ const showPayement =
 
     <View style={styles.dropdown}>
       <Picker
-        selectedValue={transport}
-        onValueChange={(value) => setTransport(value)}
-      >
-        <Picker.Item label="Sélectionner transport" value="" />
-        <Picker.Item label="MESSAGERIE" value="Messagerie" />
-        <Picker.Item label="HONDA" value="Honda" />
-      </Picker>
+  selectedValue={statutPaiement}
+  onValueChange={(value) => setStatutPaiement(value)}
+>
+  <Picker.Item label="Sélectionner" value="" />
+  <Picker.Item label="Payé" value="paye" />
+  <Picker.Item label="Non payé" value="non_paye" />
+</Picker>
     </View>
   </>
 )}
