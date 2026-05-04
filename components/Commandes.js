@@ -129,14 +129,6 @@ const handleAddProduct = () => {
     return Alert.alert("Erreur", "Entrer quantité");
   }
 
-  if (showTransport && !transport) {
-    return Alert.alert("Erreur", "Choisir le transport");
-  }
-
-  if (showPayement && !statutPaiement) {
-    return Alert.alert("Erreur", "Choisir le paiement");
-  }
-
   const item = {
     bl_num: blNum,
     client_id: clientId,
@@ -152,26 +144,26 @@ const handleAddProduct = () => {
 
     prix_unitaire: parseFloat(prixUnitaire),
 
-    transport: showTransport
-      ? transport
-      : "Messagerie",
-
-    statut_paiement: showPayement
-      ? statutPaiement
-      : "non_paye",
+    // 🔥 FORCER VALEURS PROPRES
+    transport: transport || "Messagerie",
+    statut_paiement: statutPaiement || "non_paye",
+    date_echeance: null, // ou tu peux ajouter un DatePicker plus tard
   };
 
   console.log("🧪 ITEM AJOUTÉ:", item);
 
   setCommandesMultiple((prev) => [...prev, item]);
 
-  // reset produit seulement
+  // RESET PROPRE
   setProduitRef(null);
   setProduitsSearch("");
   setQuantite("");
   setRouleaux("");
   setMetres("");
   setPrixUnitaire("");
+
+  setTransport("");
+  setStatutPaiement("");
 };
 
   /* const handleSubmit = async () => {
@@ -385,18 +377,17 @@ const handleAddProduct = () => {
 
     <View style={styles.dropdown}>
       <Picker
-        selectedValue={transport}
-        onValueChange={(value) => setTransport(value)}
-      >
-        <Picker.Item label="Sélectionner transport" value="" />
-        <Picker.Item label="MESSAGERIE" value="Messagerie" />
-        <Picker.Item label="HONDA" value="Honda" />
-      </Picker>
+  selectedValue={transport}
+  onValueChange={(value) => setTransport(value)}
+>
+  <Picker.Item label="Sélectionner transport" value="" />
+  <Picker.Item label="Messagerie" value="Messagerie" />
+  <Picker.Item label="Honda" value="Honda" />
+</Picker>
     </View>
   </>
 )}
 
-{/* PAIEMENT */}
 {/* PAIEMENT */}
 {showPayement && (
   <>
@@ -404,13 +395,13 @@ const handleAddProduct = () => {
 
     <View style={styles.dropdown}>
       <Picker
-        selectedValue={statutPaiement}
-        onValueChange={(value) => setStatutPaiement(value)}
-      >
-        <Picker.Item label="Sélectionner" value="" />
-        <Picker.Item label="Payé" value="paye" />
-        <Picker.Item label="Non payé" value="non_paye" />
-      </Picker>
+  selectedValue={statutPaiement}
+  onValueChange={(value) => setStatutPaiement(value)}
+>
+  <Picker.Item label="Sélectionner" value="" />
+  <Picker.Item label="Payé" value="paye" />
+  <Picker.Item label="Non payé" value="non_paye" />
+</Picker>
     </View>
   </>
 )}

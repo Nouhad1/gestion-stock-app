@@ -14,10 +14,11 @@ router.post("/multiples", async (req, res) => {
   try {
     for (const cmd of commandes) {
 
-      // 🔍 DEBUG RÉCEPTION
-      console.log("📥 CMD REÇU:", JSON.stringify(cmd, null, 2));
+      console.log("📥 CMD REÇU:", cmd);
 
-      // ✅ SAFE EXTRACTION
+      // =========================
+      // SAFE EXTRACTION
+      // =========================
       const client_id = cmd.client_id ?? null;
       const produit_reference = cmd.produit_reference ?? null;
       const quantite_commande = Number(cmd.quantite_commande) || 0;
@@ -25,29 +26,37 @@ router.post("/multiples", async (req, res) => {
       const bl_num = cmd.bl_num ?? null;
       const prix_unitaire = Number(cmd.prix_unitaire) || 0;
 
-      // ✅ TRANSPORT SÉCURISÉ (anti NULL)
-      let transport = "Messagerie";
-      if (cmd.transport) {
-        const t = String(cmd.transport).trim().toLowerCase();
-        if (t === "honda") transport = "Honda";
-        if (t === "messagerie") transport = "Messagerie";
-      }
+      // =========================
+      // TRANSPORT CLEAN
+      // =========================
+      const transportRaw = String(cmd.transport ?? "").trim().toLowerCase();
 
-      // ✅ PAIEMENT SÉCURISÉ (anti NULL)
-      let statut_paiement = "non_paye";
-      if (cmd.statut_paiement) {
-        const p = String(cmd.statut_paiement).trim().toLowerCase();
-        if (p === "paye") statut_paiement = "paye";
-        if (p === "non_paye") statut_paiement = "non_paye";
-      }
+      const transport =
+        transportRaw === "honda"
+          ? "Honda"
+          : "Messagerie";
 
-      // 🔍 DEBUG AVANT INSERT
-      console.log("📦 INSERT VALUES:", {
+      // =========================
+      // PAIEMENT CLEAN
+      // =========================
+      const statut_paiement = String(cmd.statut_paiement ?? "non_paye")
+        .trim()
+        .toLowerCase();
+
+      // =========================
+      // DATE ÉCHÉANCE
+      // =========================
+      const date_echeance = cmd.date_echeance ?? null;
+
+      console.log("📦 FINAL VALUES:", {
         transport,
         statut_paiement,
+        date_echeance,
       });
 
-      // 🔍 PRODUIT
+      // =========================
+      // PRODUIT
+      // =========================
       const [produitRows] = await connection.query(
         `SELECT designation, COALESCE(longueur_par_rouleau,0) AS longueur
          FROM produits
@@ -68,7 +77,7 @@ router.post("/multiples", async (req, res) => {
       let montant = 0;
 
       // =========================
-      // ✅ INSERT LANIÈRE
+      // INSERT LANIÈRE
       // =========================
       if (isLaniere) {
         const totalMetres =
@@ -78,8 +87,8 @@ router.post("/multiples", async (req, res) => {
 
         await connection.query(
           `INSERT INTO commandes
-          (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, prix_unitaire, transport, statut_paiement)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, prix_unitaire, transport, statut_paiement, date_echeance)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             client_id,
             produit_reference,
@@ -90,20 +99,21 @@ router.post("/multiples", async (req, res) => {
             prix_unitaire,
             transport,
             statut_paiement,
+            date_echeance,
           ]
         );
       }
 
       // =========================
-      // ✅ INSERT NORMAL
+      // INSERT NORMAL
       // =========================
       else {
         montant = quantite_commande * prix_unitaire;
 
         await connection.query(
           `INSERT INTO commandes
-          (client_id, produit_reference, quantite_commande, bl_num, montant, prix_unitaire, transport, statut_paiement)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          (client_id, produit_reference, quantite_commande, bl_num, montant, prix_unitaire, transport, statut_paiement, date_echeance)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             client_id,
             produit_reference,
@@ -113,6 +123,7 @@ router.post("/multiples", async (req, res) => {
             prix_unitaire,
             transport,
             statut_paiement,
+            date_echeance,
           ]
         );
       }
