@@ -41,8 +41,8 @@ const CommandesScreen = () => {
 
   const [refreshing, setRefreshing] = useState(false);
 
-  const [transport, setTransport] = useState("");
-  const [statutPaiement, setStatutPaiement] = useState("");
+  const [transport, setTransport] = useState("Messagerie");
+  const [statutPaiement, setStatutPaiement] = useState("non_paye");
   const clientsAvecTransport = [209, 221, 281, 215];
 
   const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
@@ -131,39 +131,39 @@ const handleAddProduct = () => {
 
   const item = {
     bl_num: blNum,
-    client_id: clientId,
+    client_id: Number(clientId),
     produit_reference: produitRef,
 
     quantite_commande: isLaniere
-      ? parseFloat(rouleaux) || 0
-      : parseFloat(quantite),
+      ? Number(rouleaux) || 0
+      : Number(quantite) || 0,
 
     metres_commandees: isLaniere
-      ? parseFloat(metres) || 0
+      ? Number(metres) || 0
       : 0,
 
-    prix_unitaire: parseFloat(prixUnitaire),
+    prix_unitaire: Number(prixUnitaire) || 0,
 
-    // 🔥 FORCER VALEURS PROPRES
-    transport: transport || "Messagerie",
-    statut_paiement: statutPaiement || "non_paye",
-    date_echeance: null, // ou tu peux ajouter un DatePicker plus tard
+    // 🔥 FORCER VALEURS PROPRES (ULTRA IMPORTANT)
+    transport: transport?.trim() || "Messagerie",
+    statut_paiement: statutPaiement?.trim() || "non_paye",
+    date_echeance: null,
   };
 
   console.log("🧪 ITEM AJOUTÉ:", item);
 
-  setCommandesMultiple((prev) => [...prev, item]);
+  console.log("🚚 transport STATE:", transport);
+  console.log("💰 paiement STATE:", statutPaiement);
 
-  // RESET PROPRE
+  setCommandesMultiple(prev => [...prev, item]);
+
+  // RESET PRODUIT SEULEMENT
   setProduitRef(null);
   setProduitsSearch("");
   setQuantite("");
   setRouleaux("");
   setMetres("");
   setPrixUnitaire("");
-
-  setTransport("");
-  setStatutPaiement("");
 };
 
   /* const handleSubmit = async () => {
@@ -369,8 +369,11 @@ const handleAddProduct = () => {
           keyboardType="numeric"
         />
 
+        <TouchableOpacity style={styles.addBtn} onPress={handleAddProduct}>
+          <Text style={styles.btnText}>+ Ajouter</Text>
+        </TouchableOpacity>
 
-{/* TRANSPORT */}
+        {/* TRANSPORT */}
 {showTransport && (
   <>
     <Text style={styles.label}>Choisir le transport</Text>
@@ -378,9 +381,11 @@ const handleAddProduct = () => {
     <View style={styles.dropdown}>
       <Picker
   selectedValue={transport}
-  onValueChange={(value) => setTransport(value)}
+  onValueChange={(value) => {
+    console.log("🚚 transport selected:", value);
+    setTransport(value);
+  }}
 >
-  <Picker.Item label="Sélectionner transport" value="" />
   <Picker.Item label="Messagerie" value="Messagerie" />
   <Picker.Item label="Honda" value="Honda" />
 </Picker>
@@ -396,19 +401,17 @@ const handleAddProduct = () => {
     <View style={styles.dropdown}>
       <Picker
   selectedValue={statutPaiement}
-  onValueChange={(value) => setStatutPaiement(value)}
+  onValueChange={(value) => {
+    console.log("💰 paiement selected:", value);
+    setStatutPaiement(value);
+  }}
 >
-  <Picker.Item label="Sélectionner" value="" />
-  <Picker.Item label="Payé" value="paye" />
   <Picker.Item label="Non payé" value="non_paye" />
+  <Picker.Item label="Payé" value="paye" />
 </Picker>
     </View>
   </>
 )}
-
-        <TouchableOpacity style={styles.addBtn} onPress={handleAddProduct}>
-          <Text style={styles.btnText}>+ Ajouter</Text>
-        </TouchableOpacity>
       </View>
     </View>
   }
