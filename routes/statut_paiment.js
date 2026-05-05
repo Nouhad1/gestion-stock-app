@@ -6,7 +6,7 @@ const db = require("../backend/db");
 router.get("/transport", async (req, res) => {
   try {
     const [rows] = await db.promise().query(
-      "SELECT id, nom FROM transport ORDER BY nom ASC"
+      "SELECT * FROM transport"
     );
 
     res.json(rows);
@@ -17,10 +17,10 @@ router.get("/transport", async (req, res) => {
 });
 
 
-router.get("/paiment", async (req, res) => {
+router.get("/paiement", async (req, res) => {
   try {
     const [rows] = await db.promise().query(
-      "SELECT id, statut FROM paiment ORDER BY id ASC"
+      "SELECT * FROM paiement"
     );
 
     res.json(rows);

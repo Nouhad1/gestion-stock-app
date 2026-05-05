@@ -78,7 +78,7 @@ const CommandesScreen = () => {
   });
 
 
-  axios.get(`${API_URL}/paiment`)
+  axios.get(`${API_URL}/paiement`)
   .then(res => {
     console.log("PAIMENT OK:", res.data);
   })
