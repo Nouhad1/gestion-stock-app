@@ -52,42 +52,47 @@ const CommandesScreen = () => {
   const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
 
   useEffect(() => {
-    axios.get(`${API_URL}/clients`).then((res) =>
-      setClients(res.data.map((c) => ({ label: c.nom, value: c.id })))
-    );
+  axios.get(`${API_URL}/clients`).then((res) =>
+    setClients(res.data.map((c) => ({
+      label: c.nom,
+      value: c.id
+    })))
+  );
 
-    axios.get(`${API_URL}/produits`).then((res) =>
-      setProduits(
-        res.data.map((p) => ({
-          label: p.designation,
-          value: p.reference,
-          type: p.designation.toUpperCase().includes("ROUL")
-            ? "laniere"
-            : "autre",
-        }))
-      )
-    );
-
+  axios.get(`${API_URL}/produits`).then((res) =>
+    setProduits(
+      res.data.map((p) => ({
+        label: p.designation,
+        value: p.reference,
+        type: p.designation.toUpperCase().includes("ROUL")
+          ? "laniere"
+          : "autre",
+      }))
+    )
+  );
 
   axios.get(`${API_URL}/transport`)
-  .then(res => {
-    console.log("TRANSPORT OK:", res.data);
-  })
-  .catch(err => {
-    console.log("TRANSPORT ERROR:", err.message);
-  });
-
+    .then(res => {
+      setTransport(
+        res.data.map(t => ({
+          label: t.nom || t.designation,
+          value: t.id
+        }))
+      );
+    });
 
   axios.get(`${API_URL}/paiement`)
-  .then(res => {
-    console.log("PAIMENT OK:", res.data);
-  })
-  .catch(err => {
-    console.log("PAIMENT ERROR:", err.message);
-  });
+    .then(res => {
+      setPaiements(
+        res.data.map(p => ({
+          label: p.nom || p.statut,
+          value: p.id
+        }))
+      );
+    });
 
-    fetchCommandes();
-  }, []);
+  fetchCommandes();
+}, []);
 
   const fetchCommandes = useCallback(async () => {
     const res = await axios.get(`${API_URL}/commandes`);
