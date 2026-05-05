@@ -32,7 +32,7 @@ app.use('/api/commandes', commandesRoutes);
 app.use('/api/achats', achatsRoutes);
 app.use('/api/clients', clientsRoutes);
 app.use('/api/dashboard', homeRoute);
-app.use('/api', statutPaiment);
+app.use('/api/statut', statutPaiment);
 
 // --- Route de login ---
 app.post('/api/login', (req, res) => {
