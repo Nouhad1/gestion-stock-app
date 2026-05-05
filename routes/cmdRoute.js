@@ -26,13 +26,14 @@ router.post("/multiples", async (req, res) => {
         prix_unitaire,
         transport_id,
         paiement_id,
-        //date_echeance,
       } = cmd;
 
-      // 🔥 sécurisation numérique
+      // 🔒 sécurisation
       quantite_commande = Number(quantite_commande || 0);
       metres_commandees = Number(metres_commandees || 0);
       prix_unitaire = Number(prix_unitaire || 0);
+      transport_id = transport_id || null;
+      paiement_id = paiement_id || null;
 
       // 🔎 produit
       const [produitRows] = await connection.query(
@@ -55,7 +56,7 @@ router.post("/multiples", async (req, res) => {
       let montant = 0;
 
       // ======================
-      // CAS LANIERE
+      // ✅ CAS LANIERE
       // ======================
       if (isLaniere) {
         const totalMetres =
@@ -66,7 +67,7 @@ router.post("/multiples", async (req, res) => {
         await connection.query(
           `INSERT INTO commandes
           (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, prix_unitaire, transport_id, paiement_id)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, // ✅ 9 ? corrigé
           [
             client_id,
             produit_reference,
@@ -77,22 +78,21 @@ router.post("/multiples", async (req, res) => {
             prix_unitaire,
             transport_id,
             paiement_id,
-            //date_echeance || null,
           ]
         );
       }
 
       // ======================
-      // CAS NORMAL
+      // ✅ CAS NORMAL
       // ======================
       else {
         montant = quantite_commande * prix_unitaire;
 
         await connection.query(
           `INSERT INTO commandes
-          (client_id, produit_reference, quantite_commande, bl_num, montant, prix_unitaire,transport_id, paiement_id)
+          (client_id, produit_reference, quantite_commande, bl_num, montant, prix_unitaire, transport_id, paiement_id)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [ 
+          [
             client_id,
             produit_reference,
             quantite_commande,
@@ -101,7 +101,6 @@ router.post("/multiples", async (req, res) => {
             prix_unitaire,
             transport_id,
             paiement_id,
-            //date_echeance || null,
           ]
         );
       }
@@ -123,6 +122,33 @@ router.post("/multiples", async (req, res) => {
 
   } finally {
     connection.release();
+  }
+});
+
+router.get("/transport", async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT id, nom FROM transport ORDER BY nom ASC"
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.log("❌ ERROR transport:", err.message);
+    res.status(500).json({ message: "Erreur serveur transport" });
+  }
+});
+
+
+router.get("/paiment", async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(
+      "SELECT id, statut FROM paiment ORDER BY id ASC"
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.log("❌ ERROR paiement:", err.message);
+    res.status(500).json({ message: "Erreur serveur paiement" });
   }
 });
 

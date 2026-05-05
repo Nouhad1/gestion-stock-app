@@ -44,7 +44,10 @@ const CommandesScreen = () => {
   // ✅ NOUVEAU SYSTEME IDs
     const [transportId, setTransportId] = useState(2); // Messagerie
     const [paiementId, setPaiementId] = useState(2);   // Non payé
-  const clientsAvecTransport = [209, 221, 281, 215];
+    const clientsAvecTransport = [209, 221, 281, 215];
+
+    const [transport, setTransport] = useState([]);
+    const [paiement, setPaiements] = useState([]);
 
   const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
 
@@ -63,6 +66,15 @@ const CommandesScreen = () => {
             : "autre",
         }))
       )
+    );
+
+
+    axios.get(`${API_URL}/transport`).then((res) =>
+      setTransport(res.data.map((c) => ({ label: c.nom, value: c.id })))
+    );
+
+    axios.get(`${API_URL}/paiment`).then((res) =>
+      setPaiment(res.data.map((c) => ({ label: c.statut, value: c.id })))
     );
 
     fetchCommandes();
@@ -144,16 +156,12 @@ const handleAddProduct = () => {
     : 0,
 
   prix_unitaire: Number(prixUnitaire) || 0,
-
-  // ✅ AJOUT SIMPLE (NE CASSE RIEN)
-  transport_id: transportId,
-  paiement_id: paiementId,
 };
 
   console.log("🧪 ITEM AJOUTÉ:", item);
 
   console.log("🚚 transport ID:", transportId);
-console.log("💰 paiement ID:", paiementId);
+  console.log("💰 paiement ID:", paiementId);
 
   setCommandesMultiple(prev => [...prev, item]);
 
@@ -386,33 +394,34 @@ console.log("💰 paiement ID:", paiementId);
 
     <View style={styles.dropdown}>
       <Picker
-  selectedValue={transportId}
-  onValueChange={(value) => setTransportId(value)}
->
-  <Picker.Item label="Messagerie" value={2} />
-  <Picker.Item label="Honda" value={1} />
-</Picker>
+        selectedValue={transportId}
+        onValueChange={(value) => setTransportId(value)} // ✅ correction
+      >
+        {transport.map((t) => (
+          <Picker.Item key={t.value} label={t.label} value={t.value} />
+        ))}
+      </Picker>
     </View>
   </>
-)} 
+)}
 
 {/* PAIEMENT */}
    {showPayement && (
-  <>  
+  <>
     <Text style={styles.label}>Statut du paiement</Text>
 
     <View style={styles.dropdown}>
-     <Picker
-  selectedValue={paiementId}
-  onValueChange={(value) => setPaiementId(value)}
->
-  <Picker.Item label="Non payé" value={2} />
-  <Picker.Item label="Payé" value={1} />
-</Picker>
+      <Picker
+        selectedValue={paiementId}
+        onValueChange={(value) => setPaiementId(value)}
+      >
+        {paiement.map((p) => (
+          <Picker.Item key={p.value} label={p.label} value={p.value} />
+        ))}
+      </Picker>
     </View>
   </>
-)
-} 
+)}
       </View>
     </View>
   } 
