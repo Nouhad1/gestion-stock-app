@@ -69,14 +69,21 @@ const CommandesScreen = () => {
     );
 
 
-  axios.get(`${API_URL}/commandes/transport`).then((res) => {
-  console.log("TRANSPORT:", res.data);
-  setTransport(res.data.map((c) => ({ label: c.nom, value: c.id })));
-});
+  axios.get(`${API_URL}/transport`)
+  .then(res => {
+    console.log("TRANSPORT OK:", res.data);
+  })
+  .catch(err => {
+    console.log("TRANSPORT ERROR:", err.message);
+  });
 
-    axios.get(`${API_URL}/commandes/paiment`).then((res) =>{
-      console.log("PAIMENT:", res.data);
-  setPaiements(res.data.map((p) => ({ label: p.statut, value: p.id })))
+
+  axios.get(`${API_URL}/paiment`)
+  .then(res => {
+    console.log("PAIMENT OK:", res.data);
+  })
+  .catch(err => {
+    console.log("PAIMENT ERROR:", err.message);
   });
 
     fetchCommandes();
