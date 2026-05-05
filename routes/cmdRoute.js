@@ -17,7 +17,7 @@ router.post("/multiples", async (req, res) => {
     for (const cmd of commandes) {
       console.log("📥 CMD REÇU:", cmd);
 
-      const {
+      let {
         client_id,
         produit_reference,
         quantite_commande,
@@ -26,9 +26,24 @@ router.post("/multiples", async (req, res) => {
         prix_unitaire,
         transport,
         statut_paiement,
-        date_echeance
+        date_echeance,
       } = cmd;
 
+      // 🔥 sécurisation des champs texte
+      const transportFinal =
+        transport && transport.trim() !== ""
+          ? transport.trim()
+          : "Messagerie";
+
+      const paiementFinal =
+        statut_paiement && statut_paiement.trim() !== ""
+          ? statut_paiement.trim()
+          : "non_paye";
+
+      console.log("🚚 transport FINAL:", transportFinal);
+      console.log("💰 paiement FINAL:", paiementFinal);
+
+      // 🔎 récupérer produit
       const [produitRows] = await connection.query(
         `SELECT designation, COALESCE(longueur_par_rouleau,0) AS longueur
          FROM produits
@@ -50,10 +65,10 @@ router.post("/multiples", async (req, res) => {
 
       if (isLaniere) {
         const totalMetres =
-          Number(quantite_commande) * produit.longueur +
+          Number(quantite_commande || 0) * produit.longueur +
           Number(metres_commandees || 0);
 
-        montant = totalMetres * Number(prix_unitaire);
+        montant = totalMetres * Number(prix_unitaire || 0);
 
         await connection.query(
           `INSERT INTO commandes
@@ -62,19 +77,19 @@ router.post("/multiples", async (req, res) => {
           [
             client_id,
             produit_reference,
-            quantite_commande,
-            metres_commandees,
+            Number(quantite_commande || 0),
+            Number(metres_commandees || 0),
             bl_num,
             montant,
-            prix_unitaire,
-            transport || "Messagerie",
-            statut_paiement || "non_paye",
-            date_echeance
+            Number(prix_unitaire || 0),
+            transportFinal,
+            paiementFinal,
+            date_echeance || null,
           ]
         );
-
       } else {
-        montant = Number(quantite_commande) * Number(prix_unitaire);
+        montant =
+          Number(quantite_commande || 0) * Number(prix_unitaire || 0);
 
         await connection.query(
           `INSERT INTO commandes
@@ -83,13 +98,13 @@ router.post("/multiples", async (req, res) => {
           [
             client_id,
             produit_reference,
-            quantite_commande,
+            Number(quantite_commande || 0),
             bl_num,
             montant,
-            prix_unitaire,
-            transport || "Messagerie",
-            statut_paiement || "non_paye",
-            date_echeance
+            Number(prix_unitaire || 0),
+            transportFinal,
+            paiementFinal,
+            date_echeance || null,
           ]
         );
       }
@@ -97,7 +112,7 @@ router.post("/multiples", async (req, res) => {
 
     await connection.commit();
 
-    res.status(201).json({ message: "OK" });
+    res.status(201).json({ message: "Commandes enregistrées avec succès" });
 
   } catch (err) {
     await connection.rollback();

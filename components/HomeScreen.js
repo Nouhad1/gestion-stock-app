@@ -141,17 +141,26 @@ const HomeScreen = () => {
 
       <View style={{ margin: 10 }}>
         <Picker
-          selectedValue={selectedYear}
-          onValueChange={(value) => {
-            setSelectedYear(value);
-            fetchDashboard(value);
-          }}
-          style={{ backgroundColor: '#fff' }}
-        >
-          {yearList.map((year) => (
-            <Picker.Item key={year} label={year.toString()} value={year} />
-          ))}
-        </Picker>
+  selectedValue={selectedYear}
+  onValueChange={(value) => {
+    setSelectedYear(value);
+    fetchDashboard(value);
+  }}
+  style={{
+    backgroundColor: '#fff',
+    color: '#000', // important
+  }}
+  dropdownIconColor="#000"
+>
+  {yearList.map((year) => (
+    <Picker.Item
+      key={year}
+      label={year.toString()}
+      value={year}
+      color="#000" // important aussi
+    />
+  ))}
+</Picker>
       </View>
 
       <View style={styles.cardRow}>

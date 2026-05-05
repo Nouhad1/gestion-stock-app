@@ -143,11 +143,6 @@ const handleAddProduct = () => {
       : 0,
 
     prix_unitaire: Number(prixUnitaire) || 0,
-
-    // 🔥 FORCER VALEURS PROPRES (ULTRA IMPORTANT)
-    transport: transport?.trim() || "Messagerie",
-    statut_paiement: statutPaiement?.trim() || "non_paye",
-    date_echeance: null,
   };
 
   console.log("🧪 ITEM AJOUTÉ:", item);
@@ -179,26 +174,42 @@ const handleAddProduct = () => {
     fetchCommandes();
   }; */
    const handleSubmit = async () => {
-  console.log("📤 ENVOI FINAL:", JSON.stringify(commandesMultiple, null, 2));
-
   if (!commandesMultiple.length)
     return Alert.alert("Erreur", "Aucune commande");
 
+  // 🔥 sécurisation totale des valeurs
+  const transportFinal =
+    transport && transport.trim() !== "" ? transport.trim() : "Messagerie";
+
+  const paiementFinal =
+    statutPaiement && statutPaiement.trim() !== ""
+      ? statutPaiement.trim()
+      : "non_paye";
+
+  const commandesFinales = commandesMultiple.map((cmd) => ({
+    ...cmd,
+    transport: transportFinal,
+    statut_paiement: paiementFinal,
+  }));
+
+  console.log("📤 ENVOI FINAL:", JSON.stringify(commandesFinales, null, 2));
+
   try {
     await axios.post(`${API_URL}/commandes/multiples`, {
-      commandes: commandesMultiple,
+      commandes: commandesFinales,
     });
 
     Alert.alert("Succès", "Commande enregistrée");
 
+    // 🔄 reset propre
     setCommandesMultiple([]);
     setBlNum("");
-    setTransport("");
-    setStatutPaiement("");
+    setTransport("Messagerie");
+    setStatutPaiement("non_paye");
 
     fetchCommandes();
   } catch (error) {
-    console.log("Erreur:", error.response?.data || error.message);
+    console.log("❌ Erreur:", error.response?.data || error.message);
     Alert.alert("Erreur", error.response?.data?.message || "Erreur serveur");
   }
 };
@@ -374,7 +385,7 @@ const handleAddProduct = () => {
         </TouchableOpacity>
 
         {/* TRANSPORT */}
-{/*  {showTransport && (
+  {showTransport && (
   <>
     <Text style={styles.label}>Choisir le transport</Text>
 
@@ -391,10 +402,10 @@ const handleAddProduct = () => {
 </Picker>
     </View>
   </>
-)} */}
+)} 
 
 {/* PAIEMENT */}
-  {/* {showPayement && (
+   {showPayement && (
   <>  
     <Text style={styles.label}>Statut du paiement</Text>
 
@@ -412,7 +423,7 @@ const handleAddProduct = () => {
     </View>
   </>
 )
-} */}
+} 
       </View>
     </View>
   } 
