@@ -91,7 +91,7 @@ router.post("/multiples", async (req, res) => {
         await connection.query(
           `INSERT INTO commandes
           (client_id, produit_reference, quantite_commande, bl_num, montant, prix_unitaire,transport_id, paiement_id)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             client_id,
             produit_reference,
