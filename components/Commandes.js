@@ -152,8 +152,8 @@ const handleAddProduct = () => {
 
   console.log("🧪 ITEM AJOUTÉ:", item);
 
-  console.log("🚚 transport STATE:", transport);
-  console.log("💰 paiement STATE:", statutPaiement);
+  console.log("🚚 transport ID:", transportId);
+console.log("💰 paiement ID:", paiementId);
 
   setCommandesMultiple(prev => [...prev, item]);
 
