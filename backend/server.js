@@ -25,11 +25,19 @@ const achatsRoutes = require('../routes/achatsRoute');
 const clientsRoutes = require('../routes/clientsRoute');
 const homeRoute = require('../routes/HomeRoutes');
 
+// 🔥 NOUVELLES ROUTES (IMPORTANT)
+const transportRoutes = require('../routes/transportRoute');
+const paimentRoutes = require('../routes/paimentRoute');
+
 app.use('/api/produits', produitsRoutes);
 app.use('/api/commandes', commandesRoutes);
 app.use('/api/achats', achatsRoutes);
 app.use('/api/clients', clientsRoutes);
 app.use('/api/dashboard', homeRoute);
+
+// ✅ AJOUT ICI
+app.use('/api/transport', transportRoutes);
+app.use('/api/paiment', paimentRoutes);
 
 // --- Route de login ---
 app.post('/api/login', (req, res) => {
@@ -52,7 +60,6 @@ app.post('/api/login', (req, res) => {
 
     const user = rows[0];
 
-    // 🔑 Remplacer mot_de_passe par password
     const passwordMatch = await bcrypt.compare(mot_de_passe, user.password);
 
     if (!passwordMatch) {
@@ -63,50 +70,14 @@ app.post('/api/login', (req, res) => {
       success: true,
       message: 'Connexion réussie',
       user: {
-        maticule: user.maticule,
+        matricule: user.matricule,
         login: user.login,
-        // Ajoute d'autres champs si nécessaire
       },
     });
   });
 });
 
-
-// --- Route test login ---
-/*app.get('/api/test-login', (req, res) => {
-  const { login, mot_de_passe } = req.query;
-
-  if (!login || !mot_de_passe) {
-    return res.status(400).json({ success: false, message: 'Login et mot de passe requis' });
-  }
-
-  const sql = 'SELECT password FROM employes WHERE login = ?';
-  db.query(sql, [login], (err, results) => {
-    if (err) {
-      console.error('Erreur SQL:', err);
-      return res.status(500).json({ success: false, message: 'Erreur serveur', error: err.message });
-    }
-
-    if (results.length === 0) {
-      // utilisateur non trouvé
-      return res.json({ success: true, valide: false });
-    }
-
-    const hash = results[0].password;
-
-    bcrypt.compare(mot_de_passe, hash, (err, isMatch) => {
-      if (err) {
-        console.error('Erreur bcrypt:', err);
-        return res.status(500).json({ success: false, message: 'Erreur serveur' });
-      }
-
-      // retourne true si mot de passe correct, sinon false
-      res.json({ success: true, valide: isMatch });
-    });
-  });
-});*/
-
-// --- Lancement du serveur ---
+// --- Lancement serveur ---
 app.listen(PORT, () => {
   console.log(`🚀 Serveur Express lancé sur le port ${PORT}`);
 });
