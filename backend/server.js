@@ -24,20 +24,16 @@ const commandesRoutes = require('../routes/cmdRoute');
 const achatsRoutes = require('../routes/achatsRoute');
 const clientsRoutes = require('../routes/clientsRoute');
 const homeRoute = require('../routes/HomeRoutes');
+const statutPaiment=require('../routes/statut_paiment');
 
-// 🔥 NOUVELLES ROUTES (IMPORTANT)
-const transportRoutes = require('../routes/transportRoute');
-const paimentRoutes = require('../routes/paimentRoute');
 
 app.use('/api/produits', produitsRoutes);
 app.use('/api/commandes', commandesRoutes);
 app.use('/api/achats', achatsRoutes);
 app.use('/api/clients', clientsRoutes);
 app.use('/api/dashboard', homeRoute);
-
-// ✅ AJOUT ICI
-app.use('/api/transport', transportRoutes);
-app.use('/api/paiment', paimentRoutes);
+app.use('/api/transport', statutPaiment);
+app.use('/api/paiment', statutPaiment);
 
 // --- Route de login ---
 app.post('/api/login', (req, res) => {
