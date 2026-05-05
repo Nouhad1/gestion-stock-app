@@ -24,26 +24,17 @@ router.post("/multiples", async (req, res) => {
         metres_commandees,
         bl_num,
         prix_unitaire,
-        transport,
-        statut_paiement,
+        transport_id,
+        paiement_id,
         date_echeance,
       } = cmd;
 
-      // 🔥 sécurisation des champs texte
-      const transportFinal =
-        transport && transport.trim() !== ""
-          ? transport.trim()
-          : "Messagerie";
+      // 🔥 sécurisation numérique
+      quantite_commande = Number(quantite_commande || 0);
+      metres_commandees = Number(metres_commandees || 0);
+      prix_unitaire = Number(prix_unitaire || 0);
 
-      const paiementFinal =
-        statut_paiement && statut_paiement.trim() !== ""
-          ? statut_paiement.trim()
-          : "non_paye";
-
-      console.log("🚚 transport FINAL:", transportFinal);
-      console.log("💰 paiement FINAL:", paiementFinal);
-
-      // 🔎 récupérer produit
+      // 🔎 produit
       const [produitRows] = await connection.query(
         `SELECT designation, COALESCE(longueur_par_rouleau,0) AS longueur
          FROM produits
@@ -63,47 +54,53 @@ router.post("/multiples", async (req, res) => {
 
       let montant = 0;
 
+      // ======================
+      // CAS LANIERE
+      // ======================
       if (isLaniere) {
         const totalMetres =
-          Number(quantite_commande || 0) * produit.longueur +
-          Number(metres_commandees || 0);
+          quantite_commande * produit.longueur + metres_commandees;
 
-        montant = totalMetres * Number(prix_unitaire || 0);
+        montant = totalMetres * prix_unitaire;
 
         await connection.query(
           `INSERT INTO commandes
-          (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, prix_unitaire, transport, statut_paiement, date_echeance)
+          (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, prix_unitaire, transport_id, paiement_id, date_echeance)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             client_id,
             produit_reference,
-            Number(quantite_commande || 0),
-            Number(metres_commandees || 0),
+            quantite_commande,
+            metres_commandees,
             bl_num,
             montant,
-            Number(prix_unitaire || 0),
-            transportFinal,
-            paiementFinal,
+            prix_unitaire,
+            transport_id,
+            paiement_id,
             date_echeance || null,
           ]
         );
-      } else {
-        montant =
-          Number(quantite_commande || 0) * Number(prix_unitaire || 0);
+      }
+
+      // ======================
+      // CAS NORMAL
+      // ======================
+      else {
+        montant = quantite_commande * prix_unitaire;
 
         await connection.query(
           `INSERT INTO commandes
-          (client_id, produit_reference, quantite_commande, bl_num, montant, prix_unitaire, transport, statut_paiement, date_echeance)
+          (client_id, produit_reference, quantite_commande, bl_num, montant, prix_unitaire, transport_id, paiement_id, date_echeance)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             client_id,
             produit_reference,
-            Number(quantite_commande || 0),
+            quantite_commande,
             bl_num,
             montant,
-            Number(prix_unitaire || 0),
-            transportFinal,
-            paiementFinal,
+            prix_unitaire,
+            transport_id,
+            paiement_id,
             date_echeance || null,
           ]
         );
@@ -112,12 +109,17 @@ router.post("/multiples", async (req, res) => {
 
     await connection.commit();
 
-    res.status(201).json({ message: "Commandes enregistrées avec succès" });
+    res.status(201).json({
+      message: "Commandes enregistrées avec succès",
+    });
 
   } catch (err) {
     await connection.rollback();
     console.log("❌ ERROR:", err.message);
-    res.status(500).json({ message: err.message });
+
+    res.status(500).json({
+      message: err.message,
+    });
 
   } finally {
     connection.release();

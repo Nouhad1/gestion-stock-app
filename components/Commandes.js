@@ -41,8 +41,9 @@ const CommandesScreen = () => {
 
   const [refreshing, setRefreshing] = useState(false);
 
-  const [transport, setTransport] = useState("Messagerie");
-  const [statutPaiement, setStatutPaiement] = useState("non_paye");
+  // ✅ NOUVEAU SYSTEME IDs
+    const [transportId, setTransportId] = useState(2); // Messagerie
+    const [paiementId, setPaiementId] = useState(2);   // Non payé
   const clientsAvecTransport = [209, 221, 281, 215];
 
   const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
@@ -130,20 +131,24 @@ const handleAddProduct = () => {
   }
 
   const item = {
-    bl_num: blNum,
-    client_id: Number(clientId),
-    produit_reference: produitRef,
+  bl_num: blNum,
+  client_id: Number(clientId),
+  produit_reference: produitRef,
 
-    quantite_commande: isLaniere
-      ? Number(rouleaux) || 0
-      : Number(quantite) || 0,
+  quantite_commande: isLaniere
+    ? Number(rouleaux) || 0
+    : Number(quantite) || 0,
 
-    metres_commandees: isLaniere
-      ? Number(metres) || 0
-      : 0,
+  metres_commandees: isLaniere
+    ? Number(metres) || 0
+    : 0,
 
-    prix_unitaire: Number(prixUnitaire) || 0,
-  };
+  prix_unitaire: Number(prixUnitaire) || 0,
+
+  // ✅ AJOUT SIMPLE (NE CASSE RIEN)
+  transport_id: transportId,
+  paiement_id: paiementId,
+};
 
   console.log("🧪 ITEM AJOUTÉ:", item);
 
@@ -177,22 +182,13 @@ const handleAddProduct = () => {
   if (!commandesMultiple.length)
     return Alert.alert("Erreur", "Aucune commande");
 
-  // 🔥 sécurisation totale des valeurs
-  const transportFinal =
-    transport && transport.trim() !== "" ? transport.trim() : "Messagerie";
-
-  const paiementFinal =
-    statutPaiement && statutPaiement.trim() !== ""
-      ? statutPaiement.trim()
-      : "non_paye";
-
   const commandesFinales = commandesMultiple.map((cmd) => ({
     ...cmd,
-    transport: transportFinal,
-    statut_paiement: paiementFinal,
-  }));
 
-  console.log("📤 ENVOI FINAL:", JSON.stringify(commandesFinales, null, 2));
+    // ✅ FORCER LES IDS ICI (sécurité backend)
+    transport_id: transportId,
+    paiement_id: paiementId,
+  }));
 
   try {
     await axios.post(`${API_URL}/commandes/multiples`, {
@@ -201,16 +197,15 @@ const handleAddProduct = () => {
 
     Alert.alert("Succès", "Commande enregistrée");
 
-    // 🔄 reset propre
     setCommandesMultiple([]);
     setBlNum("");
-    setTransport("Messagerie");
-    setStatutPaiement("non_paye");
 
     fetchCommandes();
   } catch (error) {
-    console.log("❌ Erreur:", error.response?.data || error.message);
-    Alert.alert("Erreur", error.response?.data?.message || "Erreur serveur");
+    Alert.alert(
+      "Erreur",
+      error.response?.data?.message || "Erreur serveur"
+    );
   }
 };
   return (
@@ -391,14 +386,11 @@ const handleAddProduct = () => {
 
     <View style={styles.dropdown}>
       <Picker
-  selectedValue={transport}
-  onValueChange={(value) => {
-    console.log("🚚 transport selected:", value);
-    setTransport(value);
-  }}
+  selectedValue={transportId}
+  onValueChange={(value) => setTransportId(value)}
 >
-  <Picker.Item label="Messagerie" value="Messagerie" />
-  <Picker.Item label="Honda" value="Honda" />
+  <Picker.Item label="Messagerie" value={2} />
+  <Picker.Item label="Honda" value={1} />
 </Picker>
     </View>
   </>
@@ -410,15 +402,12 @@ const handleAddProduct = () => {
     <Text style={styles.label}>Statut du paiement</Text>
 
     <View style={styles.dropdown}>
-      <Picker
-  selectedValue={statutPaiement}
-  onValueChange={(value) => {
-    console.log("💰 paiement selected:", value);
-    setStatutPaiement(value);
-  }}
-> 
-   <Picker.Item label="Non payé" value="non_paye" />
-  <Picker.Item label="Payé" value="paye" />
+     <Picker
+  selectedValue={paiementId}
+  onValueChange={(value) => setPaiementId(value)}
+>
+  <Picker.Item label="Non payé" value={2} />
+  <Picker.Item label="Payé" value={1} />
 </Picker>
     </View>
   </>
