@@ -26,7 +26,7 @@ router.post("/multiples", async (req, res) => {
         prix_unitaire,
         transport_id,
         paiement_id,
-        date_echeance,
+        //date_echeance,
       } = cmd;
 
       // 🔥 sécurisation numérique
@@ -65,7 +65,7 @@ router.post("/multiples", async (req, res) => {
 
         await connection.query(
           `INSERT INTO commandes
-          (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, prix_unitaire, transport_id, paiement_id, date_echeance)
+          (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, prix_unitaire, transport_id, paiement_id)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             client_id,
@@ -77,7 +77,7 @@ router.post("/multiples", async (req, res) => {
             prix_unitaire,
             transport_id,
             paiement_id,
-            date_echeance || null,
+            //date_echeance || null,
           ]
         );
       }
