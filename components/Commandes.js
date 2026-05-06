@@ -52,46 +52,67 @@ const CommandesScreen = () => {
   const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
 
   useEffect(() => {
-  axios.get(`${API_URL}/clients`).then((res) =>
-    setClients(res.data.map((c) => ({
-      label: c.nom,
-      value: c.id
-    })))
-  );
+  const fetchData = async () => {
+    try {
+      // CLIENTS
+      const resClients = await axios.get(`${API_URL}/clients`);
+      setClients(
+        (resClients.data || []).map((c) => ({
+          label: c.nom,
+          value: c.id,
+        }))
+      );
 
-  axios.get(`${API_URL}/produits`).then((res) =>
-    setProduits(
-      res.data.map((p) => ({
-        label: p.designation,
-        value: p.reference,
-        type: p.designation.toUpperCase().includes("ROUL")
-          ? "laniere"
-          : "autre",
-      }))
-    )
-  );
+      // PRODUITS
+      const resProduits = await axios.get(`${API_URL}/produits`);
+      setProduits(
+        (resProduits.data || []).map((p) => ({
+          label: p.designation,
+          value: p.reference,
+          type: p.designation?.toUpperCase().includes("ROUL")
+            ? "laniere"
+            : "autre",
+        }))
+      );
 
-  axios.get(`${API_URL}/statut/transport`).then(res => {
-  setTransport(res.data.map(t => ({
-    label: t.nom,
-    value: t.id
-  })));
-});
+      // TRANSPORT
+      const resTransport = await axios.get(`${API_URL}/statut/transport`);
+      setTransport(
+        (resTransport.data || []).map((t) => ({
+          label: t.nom,
+          value: t.id,
+        }))
+      );
 
-axios.get(`${API_URL}/statut/paiement`).then(res => {
-  setPaiements(res.data.map(p => ({
-    label: p.nom,
-    value: p.id
-  })));
-});
+      // PAIEMENT ✅ FIX
+      const resPaiement = await axios.get(`${API_URL}/statut/paiement`);
+      setPaiements(
+        (resPaiement.data || []).map((p) => ({
+          label: p.statut, // ✅ important
+          value: p.id,
+        }))
+      );
 
-  fetchCommandes();
+      // COMMANDES ✅ maintenant ça marche
+      const resCmd = await axios.get(`${API_URL}/commandes`);
+      setCommandesPassees(resCmd.data || []);
+
+    } catch (error) {
+      console.log("❌ GLOBAL ERROR:", error.message);
+    }
+  };
+
+  fetchData();
 }, []);
 
   const fetchCommandes = useCallback(async () => {
+  try {
     const res = await axios.get(`${API_URL}/commandes`);
     setCommandesPassees(res.data || []);
-  }, []);
+  } catch (e) {
+    console.log("❌ fetchCommandes error:", e.message);
+  }
+}, []);
 
   const produitSelectionne = produits.find((p) => p.value === produitRef);
   const isLaniere = produitSelectionne?.type === "laniere";

@@ -125,6 +125,24 @@ router.post("/multiples", async (req, res) => {
   }
 });
 
+router.get("/", async (req, res) => {
+  try {
+    const [rows] = await db.promise().query(`
+      SELECT 
+        c.*,
+        cl.nom AS nom_client,
+        p.designation AS designation_produit
+      FROM commandes c
+      LEFT JOIN clients cl ON c.client_id = cl.id
+      LEFT JOIN produits p ON c.produit_reference = p.reference
+      ORDER BY c.date_commande DESC
+    `);
 
+    res.json(rows);
+  } catch (err) {
+    console.log("❌ ERROR commandes:", err.message);
+    res.status(500).json({ message: "Erreur serveur commandes" });
+  }
+});
 
 module.exports = router;
