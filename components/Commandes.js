@@ -52,81 +52,40 @@ const CommandesScreen = () => {
   const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
 
   useEffect(() => {
-  const fetchData = async () => {
-    try {
-      // ✅ CLIENTS
-      try {
-        const res = await axios.get(`${API_URL}/clients`);
-        setClients(
-          (res.data || []).map((c) => ({
-            label: c.nom,
-            value: c.id,
-          }))
-        );
-      } catch (e) {
-        console.log("❌ clients error:", e.message);
-      }
+  axios.get(`${API_URL}/clients`).then((res) =>
+    setClients(res.data.map((c) => ({
+      label: c.nom,
+      value: c.id
+    })))
+  );
 
-      // ✅ PRODUITS
-      try {
-        const res = await axios.get(`${API_URL}/produits`);
-        setProduits(
-          (res.data || []).map((p) => ({
-            label: p.designation,
-            value: p.reference,
-            type: p.designation?.toUpperCase().includes("ROUL")
-              ? "laniere"
-              : "autre",
-          }))
-        );
-      } catch (e) {
-        console.log("❌ produits error:", e.message);
-      }
+  axios.get(`${API_URL}/produits`).then((res) =>
+    setProduits(
+      res.data.map((p) => ({
+        label: p.designation,
+        value: p.reference,
+        type: p.designation.toUpperCase().includes("ROUL")
+          ? "laniere"
+          : "autre",
+      }))
+    )
+  );
 
-      // ✅ TRANSPORT
-      try {
-        const res = await axios.get(`${API_URL}/statut/transport`);
-        console.log("🚚 transport:", res.data);
+  axios.get(`${API_URL}/statut/transport`).then(res => {
+  setTransport(res.data.map(t => ({
+    label: t.nom,
+    value: t.id
+  })));
+});
 
-        setTransport(
-          (res.data || []).map((t) => ({
-            label: t.nom,
-            value: t.id,
-          }))
-        );
-      } catch (e) {
-        console.log("❌ transport error:", e.message);
-      }
+axios.get(`${API_URL}/statut/paiement`).then(res => {
+  setPaiements(res.data.map(p => ({
+    label: p.nom,
+    value: p.id
+  })));
+});
 
-      // ✅ PAIEMENT
-      try {
-        const res = await axios.get(`${API_URL}/statut/paiement`);
-        console.log("💰 paiement:", res.data);
-
-        setPaiements(
-          (res.data || []).map((p) => ({
-            label: p.nom,
-            value: p.id,
-          }))
-        );
-      } catch (e) {
-        console.log("❌ paiement error:", e.message);
-      }
-
-      // ✅ COMMANDES
-      try {
-        const res = await axios.get(`${API_URL}/commandes`);
-        setCommandesPassees(res.data || []);
-      } catch (e) {
-        console.log("❌ commandes error:", e.message);
-      }
-
-    } catch (error) {
-      console.log("❌ GLOBAL ERROR:", error.message);
-    }
-  };
-
-  fetchData();
+  fetchCommandes();
 }, []);
 
   const fetchCommandes = useCallback(async () => {
