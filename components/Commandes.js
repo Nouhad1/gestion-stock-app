@@ -54,67 +54,75 @@ const CommandesScreen = () => {
   useEffect(() => {
   const fetchData = async () => {
     try {
-      // ✅ Charger tout en parallèle (plus rapide)
-      const [
-        clientsRes,
-        produitsRes,
-        transportRes,
-        paiementRes
-      ] = await Promise.all([
-        axios.get(`${API_URL}/clients`),
-        axios.get(`${API_URL}/produits`),
-        axios.get(`${API_URL}/statut/transport`),
-        axios.get(`${API_URL}/statut/paiement`)
-      ]);
-
       // ✅ CLIENTS
-      setClients(
-        clientsRes.data.map((c) => ({
-          label: c.nom,
-          value: c.id,
-        }))
-      );
+      try {
+        const res = await axios.get(`${API_URL}/clients`);
+        setClients(
+          (res.data || []).map((c) => ({
+            label: c.nom,
+            value: c.id,
+          }))
+        );
+      } catch (e) {
+        console.log("❌ clients error:", e.message);
+      }
 
       // ✅ PRODUITS
-      setProduits(
-        produitsRes.data.map((p) => ({
-          label: p.designation,
-          value: p.reference,
-          type: p.designation.toUpperCase().includes("ROUL")
-            ? "laniere"
-            : "autre",
-        }))
-      );
+      try {
+        const res = await axios.get(`${API_URL}/produits`);
+        setProduits(
+          (res.data || []).map((p) => ({
+            label: p.designation,
+            value: p.reference,
+            type: p.designation?.toUpperCase().includes("ROUL")
+              ? "laniere"
+              : "autre",
+          }))
+        );
+      } catch (e) {
+        console.log("❌ produits error:", e.message);
+      }
 
       // ✅ TRANSPORT
-      console.log("🚚 transport API:", transportRes.data);
-      setTransport(
-        transportRes.data.map((t) => ({
-          label: t.nom,
-          value: t.id,
-        }))
-      );
+      try {
+        const res = await axios.get(`${API_URL}/statut/transport`);
+        console.log("🚚 transport:", res.data);
+
+        setTransport(
+          (res.data || []).map((t) => ({
+            label: t.nom,
+            value: t.id,
+          }))
+        );
+      } catch (e) {
+        console.log("❌ transport error:", e.message);
+      }
 
       // ✅ PAIEMENT
-      console.log("💰 paiement API:", paiementRes.data);
-      setPaiements(
-        paiementRes.data.map((p) => ({
-          label: p.nom,
-          value: p.id,
-        }))
-      );
+      try {
+        const res = await axios.get(`${API_URL}/statut/paiement`);
+        console.log("💰 paiement:", res.data);
+
+        setPaiements(
+          (res.data || []).map((p) => ({
+            label: p.nom,
+            value: p.id,
+          }))
+        );
+      } catch (e) {
+        console.log("❌ paiement error:", e.message);
+      }
 
       // ✅ COMMANDES
-      await fetchCommandes();
+      try {
+        const res = await axios.get(`${API_URL}/commandes`);
+        setCommandesPassees(res.data || []);
+      } catch (e) {
+        console.log("❌ commandes error:", e.message);
+      }
 
     } catch (error) {
-      console.log("❌ ERREUR useEffect:", error.message);
-
-      // 👉 très utile pour debug API
-      if (error.response) {
-        console.log("❌ DATA:", error.response.data);
-        console.log("❌ STATUS:", error.response.status);
-      }
+      console.log("❌ GLOBAL ERROR:", error.message);
     }
   };
 

@@ -24,7 +24,7 @@ const commandesRoutes = require('../routes/cmdRoute');
 const achatsRoutes = require('../routes/achatsRoute');
 const clientsRoutes = require('../routes/clientsRoute');
 const homeRoute = require('../routes/HomeRoutes');
-const statutRoutes = require("./routes/statutPaiement");
+const statutRoutes = require("../routes/statutPaiement");
 
 
 app.use('/api/produits', produitsRoutes);
