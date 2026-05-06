@@ -28,35 +28,35 @@ router.post("/multiples", async (req, res) => {
         paiement_id,
       } = cmd;
 
+      // =========================
       // 🔒 sécurisation
+      // =========================
       quantite_commande = Number(quantite_commande || 0);
       metres_commandees = Number(metres_commandees || 0);
       prix_unitaire = Number(prix_unitaire || 0);
-      transport_id = transport_id || null;
-      paiement_id = paiement_id || null;
 
-      // ==============================
-      // 🚚 CALCUL DATE ÉCHÉANCE
-      // ==============================
-      const [transportRows] = await connection.query(
-        `SELECT nom FROM transport WHERE id = ?`,
-        [transport_id]
-      );
-
+      // =========================
+      // 🚚 DATE ÉCHÉANCE AUTO
+      // =========================
       let delai = 0;
 
-      if (transportRows.length) {
-        const nom = transportRows[0].nom.toLowerCase();
-
-        if (nom.includes("honda")) delai = 7;
-        else if (nom.includes("messagerie")) delai = 30;
+      if (transport_id == 1) {
+        delai = 7; // Honda
+      } else if (transport_id == 2) {
+        delai = 30; // Messagerie
       }
 
-      const dateCommande = new Date();
-      const dateEcheance = new Date(dateCommande);
+      const dateEcheance = new Date();
       dateEcheance.setDate(dateEcheance.getDate() + delai);
 
-      // 🔎 produit
+      // format SQL (YYYY-MM-DD)
+      const dateEcheanceSQL = dateEcheance
+        .toISOString()
+        .slice(0, 10);
+
+      // =========================
+      // 🔎 PRODUIT
+      // =========================
       const [produitRows] = await connection.query(
         `SELECT designation, COALESCE(longueur_par_rouleau,0) AS longueur
          FROM produits
@@ -76,9 +76,9 @@ router.post("/multiples", async (req, res) => {
 
       let montant = 0;
 
-      // ======================
-      // ✅ CAS LANIERE
-      // ======================
+      // =========================
+      // 📦 CAS LANIERE
+      // =========================
       if (isLaniere) {
         const totalMetres =
           quantite_commande * produit.longueur + metres_commandees;
@@ -87,7 +87,7 @@ router.post("/multiples", async (req, res) => {
 
         await connection.query(
           `INSERT INTO commandes
-          (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, prix_unitaire, Date_echeance,transport_id, paiement_id)
+          (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, prix_unitaire, Date_echeance, transport_id, paiement_id)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             client_id,
@@ -97,23 +97,22 @@ router.post("/multiples", async (req, res) => {
             bl_num,
             montant,
             prix_unitaire,
-            dateEcheance,
+            dateEcheanceSQL,
             transport_id,
             paiement_id,
-            
           ]
         );
       }
 
-      // ======================
-      // ✅ CAS NORMAL
-      // ======================
+      // =========================
+      // 📦 CAS NORMAL
+      // =========================
       else {
         montant = quantite_commande * prix_unitaire;
 
         await connection.query(
           `INSERT INTO commandes
-          (client_id, produit_reference, quantite_commande, bl_num, montant, prix_unitaire, Date_echeance,transport_id, paiement_id)
+          (client_id, produit_reference, quantite_commande, bl_num, montant, prix_unitaire, Date_echeance, transport_id, paiement_id)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             client_id,
@@ -122,10 +121,9 @@ router.post("/multiples", async (req, res) => {
             bl_num,
             montant,
             prix_unitaire,
-            dateEcheance,
+            dateEcheanceSQL,
             transport_id,
             paiement_id,
-            
           ]
         );
       }
