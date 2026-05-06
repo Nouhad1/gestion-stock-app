@@ -52,46 +52,73 @@ const CommandesScreen = () => {
   const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
 
   useEffect(() => {
-  axios.get(`${API_URL}/clients`).then((res) =>
-    setClients(res.data.map((c) => ({
-      label: c.nom,
-      value: c.id
-    })))
-  );
+  const fetchData = async () => {
+    try {
+      // ✅ Charger tout en parallèle (plus rapide)
+      const [
+        clientsRes,
+        produitsRes,
+        transportRes,
+        paiementRes
+      ] = await Promise.all([
+        axios.get(`${API_URL}/clients`),
+        axios.get(`${API_URL}/produits`),
+        axios.get(`${API_URL}/statut/transport`),
+        axios.get(`${API_URL}/statut/paiement`)
+      ]);
 
-  axios.get(`${API_URL}/produits`).then((res) =>
-    setProduits(
-      res.data.map((p) => ({
-        label: p.designation,
-        value: p.reference,
-        type: p.designation.toUpperCase().includes("ROUL")
-          ? "laniere"
-          : "autre",
-      }))
-    )
-  );
+      // ✅ CLIENTS
+      setClients(
+        clientsRes.data.map((c) => ({
+          label: c.nom,
+          value: c.id,
+        }))
+      );
 
-  axios.get(`${API_URL}/transport`)
-    .then(res => {
+      // ✅ PRODUITS
+      setProduits(
+        produitsRes.data.map((p) => ({
+          label: p.designation,
+          value: p.reference,
+          type: p.designation.toUpperCase().includes("ROUL")
+            ? "laniere"
+            : "autre",
+        }))
+      );
+
+      // ✅ TRANSPORT
+      console.log("🚚 transport API:", transportRes.data);
       setTransport(
-        res.data.map(t => ({
-          label: t.nom || t.designation,
-          value: t.id
+        transportRes.data.map((t) => ({
+          label: t.nom,
+          value: t.id,
         }))
       );
-    });
 
-  axios.get(`${API_URL}/paiement`)
-    .then(res => {
+      // ✅ PAIEMENT
+      console.log("💰 paiement API:", paiementRes.data);
       setPaiements(
-        res.data.map(p => ({
-          label: p.nom || p.statut,
-          value: p.id
+        paiementRes.data.map((p) => ({
+          label: p.nom,
+          value: p.id,
         }))
       );
-    });
 
-  fetchCommandes();
+      // ✅ COMMANDES
+      await fetchCommandes();
+
+    } catch (error) {
+      console.log("❌ ERREUR useEffect:", error.message);
+
+      // 👉 très utile pour debug API
+      if (error.response) {
+        console.log("❌ DATA:", error.response.data);
+        console.log("❌ STATUS:", error.response.status);
+      }
+    }
+  };
+
+  fetchData();
 }, []);
 
   const fetchCommandes = useCallback(async () => {

@@ -36,7 +36,7 @@ const getStockThreshold = (designation = '') => {
   if (name.includes('four')) return 8;
   if (name.includes('porte')) return 20;
   if (name.includes('support 1m')) return 120;
-  if (name.includes('support')) return 60;
+  if (name.includes('support 2m')) return 60;
   if (name.includes('crochet')) return 200;
 
   return 5;
