@@ -35,6 +35,27 @@ router.post("/multiples", async (req, res) => {
       transport_id = transport_id || null;
       paiement_id = paiement_id || null;
 
+      // ==============================
+      // 🚚 CALCUL DATE ÉCHÉANCE
+      // ==============================
+      const [transportRows] = await connection.query(
+        `SELECT nom FROM transport WHERE id = ?`,
+        [transport_id]
+      );
+
+      let delai = 0;
+
+      if (transportRows.length) {
+        const nom = transportRows[0].nom.toLowerCase();
+
+        if (nom.includes("honda")) delai = 7;
+        else if (nom.includes("messagerie")) delai = 30;
+      }
+
+      const dateCommande = new Date();
+      const dateEcheance = new Date(dateCommande);
+      dateEcheance.setDate(dateEcheance.getDate() + delai);
+
       // 🔎 produit
       const [produitRows] = await connection.query(
         `SELECT designation, COALESCE(longueur_par_rouleau,0) AS longueur
@@ -66,8 +87,8 @@ router.post("/multiples", async (req, res) => {
 
         await connection.query(
           `INSERT INTO commandes
-          (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, prix_unitaire, transport_id, paiement_id)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, // ✅ 9 ? corrigé
+          (client_id, produit_reference, quantite_commande, metres_commandees, bl_num, montant, prix_unitaire, Date_echeance,transport_id, paiement_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             client_id,
             produit_reference,
@@ -76,8 +97,10 @@ router.post("/multiples", async (req, res) => {
             bl_num,
             montant,
             prix_unitaire,
+            dateEcheance,
             transport_id,
             paiement_id,
+            
           ]
         );
       }
@@ -90,8 +113,8 @@ router.post("/multiples", async (req, res) => {
 
         await connection.query(
           `INSERT INTO commandes
-          (client_id, produit_reference, quantite_commande, bl_num, montant, prix_unitaire, transport_id, paiement_id)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          (client_id, produit_reference, quantite_commande, bl_num, montant, prix_unitaire, Date_echeance,transport_id, paiement_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             client_id,
             produit_reference,
@@ -99,8 +122,10 @@ router.post("/multiples", async (req, res) => {
             bl_num,
             montant,
             prix_unitaire,
+            dateEcheance,
             transport_id,
             paiement_id,
+            
           ]
         );
       }
@@ -125,6 +150,10 @@ router.post("/multiples", async (req, res) => {
   }
 });
 
+
+// ======================
+// GET COMMANDES
+// ======================
 router.get("/", async (req, res) => {
   try {
     const [rows] = await db.promise().query(`

@@ -53,20 +53,25 @@ const CommandesScreen = () => {
 
   useEffect(() => {
   const fetchData = async () => {
+
+    // ✅ CLIENTS
     try {
-      // CLIENTS
-      const resClients = await axios.get(`${API_URL}/clients`);
+      const res = await axios.get(`${API_URL}/clients`);
       setClients(
-        (resClients.data || []).map((c) => ({
+        (res.data || []).map((c) => ({
           label: c.nom,
           value: c.id,
         }))
       );
+    } catch (e) {
+      console.log("❌ clients error:", e.message);
+    }
 
-      // PRODUITS
-      const resProduits = await axios.get(`${API_URL}/produits`);
+    // ✅ PRODUITS
+    try {
+      const res = await axios.get(`${API_URL}/produits`);
       setProduits(
-        (resProduits.data || []).map((p) => ({
+        (res.data || []).map((p) => ({
           label: p.designation,
           value: p.reference,
           type: p.designation?.toUpperCase().includes("ROUL")
@@ -74,32 +79,44 @@ const CommandesScreen = () => {
             : "autre",
         }))
       );
+    } catch (e) {
+      console.log("❌ produits error:", e.message);
+    }
 
-      // TRANSPORT
-      const resTransport = await axios.get(`${API_URL}/statut/transport`);
+    // ✅ TRANSPORT
+    try {
+      const res = await axios.get(`${API_URL}/statut/transport`);
       setTransport(
-        (resTransport.data || []).map((t) => ({
+        (res.data || []).map((t) => ({
           label: t.nom,
           value: t.id,
         }))
       );
+    } catch (e) {
+      console.log("❌ transport error:", e.message);
+    }
 
-      // PAIEMENT ✅ FIX
-      const resPaiement = await axios.get(`${API_URL}/statut/paiement`);
+    // ✅ PAIEMENT (FIX IMPORTANT)
+    try {
+      const res = await axios.get(`${API_URL}/statut/paiement`);
       setPaiements(
-        (resPaiement.data || []).map((p) => ({
-          label: p.statut, // ✅ important
+        (res.data || []).map((p) => ({
+          label: p.statut, // ✅ FIX
           value: p.id,
         }))
       );
-
-      // COMMANDES ✅ maintenant ça marche
-      const resCmd = await axios.get(`${API_URL}/commandes`);
-      setCommandesPassees(resCmd.data || []);
-
-    } catch (error) {
-      console.log("❌ GLOBAL ERROR:", error.message);
+    } catch (e) {
+      console.log("❌ paiement error:", e.message);
     }
+
+    // ✅ COMMANDES
+    try {
+      const res = await axios.get(`${API_URL}/commandes`);
+      setCommandesPassees(res.data || []);
+    } catch (e) {
+      console.log("❌ commandes error:", e.message);
+    }
+
   };
 
   fetchData();
