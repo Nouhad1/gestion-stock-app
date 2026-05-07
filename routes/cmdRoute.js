@@ -82,76 +82,96 @@ router.post("/multiples", async (req, res) => {
 
       let montant = 0;
 
-      // =========================
-      // 📦 CAS LANIERE
-      // =========================
-      if (isLaniere) {
+       // =========================
+ // 📦 CAS LANIERE
+ // =========================
+ if (isLaniere) {
 
-        // total mètres sortis
-        const totalMetres =
-          (quantite_commande * produit.longueur) +
-          metres_commandees;
+   // total mètres
+   const totalMetres =
+     (quantite_commande * produit.longueur) +
+     metres_commandees;
 
-        // ✅ montant ×100
-        montant = totalMetres * prix_unitaire ;
+   // =========================
+   // 💰 CALCUL MONTANT
+   // =========================
 
-        // insertion commande
-        await connection.query(
-          `
-          INSERT INTO commandes
-          (
-            client_id,
-            produit_reference,
-            quantite_commande,
-            metres_commandees,
-            bl_num,
-            montant,
-            prix_unitaire,
-            Date_echeance,
-            transport_id,
-            paiement_id
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `,
-          [
-            client_id,
-            produit_reference,
-            quantite_commande,
-            metres_commandees,
-            bl_num,
-            montant,
-            prix_unitaire,
-            dateEcheanceSQL,
-            transport_id,
-            paiement_id,
-          ]
-        );
+   // CAS 1 :
+   // seulement rouleaux
+   if (
+     quantite_commande > 0 &&
+     metres_commandees === 0
+   ) {
 
-        // =========================
-        // 🔻 MISE À JOUR STOCK
-        // =========================
+     montant = quantite_commande * prix_unitaire;
+   }
 
-        // rouleaux utilisés
-        let rouleauxUtilises = 0;
+   // CAS 2 :
+   // mètres ajoutés
+   else {
 
-        if (produit.longueur > 0) {
-          rouleauxUtilises =
-            totalMetres / produit.longueur;
-        }
+     montant = totalMetres * prix_unitaire;
+   }
 
-        const nouveauStock =
-          Number(produit.quantite_stock) -
-          rouleauxUtilises;
+   // =========================
+   // INSERT COMMANDE
+   // =========================
+   await connection.query(
+     `
+     INSERT INTO commandes
+     (
+       client_id,
+       produit_reference,
+       quantite_commande,
+       metres_commandees,
+       bl_num,
+       montant,
+       prix_unitaire,
+       Date_echeance,
+       transport_id,
+       paiement_id
+     )
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     `,
+     [
+       client_id,
+       produit_reference,
+       quantite_commande,
+       metres_commandees,
+       bl_num,
+       montant,
+       prix_unitaire,
+       dateEcheanceSQL,
+       transport_id,
+       paiement_id,
+     ]
+   );
 
-        await connection.query(
-          `
-          UPDATE produits
-          SET quantite_stock = ?
-          WHERE reference = ?
-          `,
-          [nouveauStock, produit_reference]
-        );
-      }
+   // =========================
+   // 🔻 MISE À JOUR STOCK
+   // =========================
+
+   let rouleauxUtilises = 0;
+
+   if (produit.longueur > 0) {
+
+     rouleauxUtilises =
+       totalMetres / produit.longueur;
+   }
+
+   const nouveauStock =
+     Number(produit.quantite_stock) -
+     rouleauxUtilises;
+
+   await connection.query(
+     `
+     UPDATE produits
+     SET quantite_stock = ?
+     WHERE reference = ?
+     `,
+     [nouveauStock, produit_reference]
+   );
+ }
 
       // =========================
       // 📦 CAS NORMAL
