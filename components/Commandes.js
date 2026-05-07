@@ -41,6 +41,10 @@ const CommandesScreen = () => {
 
   const [refreshing, setRefreshing] = useState(false);
 
+  const [selectedMonthPaiement, setSelectedMonthPaiement] = useState(
+  new Date().getMonth() + 1
+);
+
   // ✅ NOUVEAU SYSTEME IDs
     const [transportId, setTransportId] = useState(2); // Messagerie
     const [paiementId, setPaiementId] = useState(2);   // Non payé
@@ -48,6 +52,12 @@ const CommandesScreen = () => {
 
     const [transport, setTransport] = useState([]);
     const [paiement, setPaiements] = useState([]);
+
+    const [showPaiementScreen, setShowPaiementScreen] = useState(false);
+    const [clientPaiement, setClientPaiement] = useState(null);
+
+    const showPaiementButton =
+  clientId !== null && clientsAvecTransport.includes(Number(clientId));
 
   const API_URL = "https://gestion-stock-app-production.up.railway.app/api";
 
@@ -134,16 +144,19 @@ const CommandesScreen = () => {
   const produitSelectionne = produits.find((p) => p.value === produitRef);
   const isLaniere = produitSelectionne?.type === "laniere";
 
-  const commandesFiltrees = commandesPassees.filter((c) => {
-    const date = c.date_commande ? new Date(c.date_commande) : null;
-    const monthOk = date ? date.getMonth() + 1 === selectedMonth : false;
+ const commandesFiltrees = commandesPassees.filter((c) => {
+  const date = c.date_commande ? new Date(c.date_commande) : null;
 
-    const clientOk = selectedClient
-      ? c.nom_client?.toLowerCase() === selectedClient.nom.toLowerCase()
+  const monthOk =
+    date && date.getMonth() + 1 === selectedMonth;
+
+  const clientOk =
+    selectedClient?.nom
+      ? (c.nom_client || "").toLowerCase() === selectedClient.nom.toLowerCase()
       : true;
 
-    return monthOk && clientOk;
-  });
+  return monthOk && clientOk;
+});
 
   const showTransport =
   clientId !== null && clientsAvecTransport.includes(Number(clientId));
@@ -162,6 +175,30 @@ const showPayement =
     newList.splice(index, 1);
     setCommandesMultiple(newList);
   };
+
+  const getPaiementStatus = (item) => {
+  const today = new Date();
+  const echeance = new Date(item.Date_echeance);
+
+  if (item.paiement_id == 1) {
+    return "VERT"; // PAYÉ
+  }
+
+  if (echeance < today) {
+    return "ROUGE"; // EN RETARD
+  }
+
+  const diffDays =
+  echeance && today
+    ? (echeance - today) / (1000 * 60 * 60 * 24)
+    : 999;
+
+  if (diffDays <= 3) {
+    return "JAUNE"; // ATTENTE
+  }
+
+  return "NORMAL";
+};
 
   const onRefresh = async () => {
   setRefreshing(true);
@@ -262,6 +299,137 @@ const handleAddProduct = () => {
     );
   }
 };
+
+
+// ================= PAYMENT SCREEN (FIX IMPORTANT) =================
+  if (showPaiementScreen) {
+
+  // 🔥 STATE MOIS (utilise celui déjà déclaré en haut du composant)
+  const data = commandesPassees.filter((c) => {
+    const dateCommande = c.date_commande
+      ? new Date(c.date_commande)
+      : null;
+
+    const clientOk = clientPaiement?.nom
+      ? (c.nom_client || "").toLowerCase() === clientPaiement.nom.toLowerCase()
+      : false;
+
+    const monthOk =
+      dateCommande &&
+      dateCommande.getMonth() + 1 === selectedMonthPaiement;
+
+    return clientOk && monthOk;
+  });
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f8fafc" }}>
+      
+      {/* HEADER */}
+      <LinearGradient colors={["#2563eb", "#1e40af"]} style={styles.header}>
+        <Text style={styles.headerTitle}>
+          Situation Paiement
+        </Text>
+        <Text style={{ color: "#cbd5f5", marginTop: 4 }}>
+          {clientPaiement?.nom}
+        </Text>
+      </LinearGradient>
+
+      {/* 🔥 FILTRE MOIS */}
+      <View style={{ padding: 10 }}>
+        <Text style={{ fontWeight: "600", marginBottom: 5 }}>
+          Filtrer par mois de commande
+        </Text>
+
+        <View style={{ backgroundColor: "#fff", borderRadius: 8 }}>
+          <Picker
+            selectedValue={selectedMonthPaiement}
+            onValueChange={(value) => setSelectedMonthPaiement(value)}
+          >
+            {[
+              "Janvier","Février","Mars","Avril","Mai","Juin",
+              "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
+            ].map((m, i) => (
+              <Picker.Item key={i} label={m} value={i + 1} />
+            ))}
+          </Picker>
+        </View>
+      </View>
+
+      <FlatList
+        data={data}
+        keyExtractor={(i, index) => index.toString()}
+        contentContainerStyle={{ padding: 12 }}
+        renderItem={({ item }) => {
+          const today = new Date();
+          const echeance = new Date(item.Date_echeance);
+
+          let status = "PAYÉ";
+          let color = "#22c55e";
+
+          if (item.paiement_id != 1) {
+            if (echeance < today) {
+              status = "RETARD";
+              color = "#ef4444";
+            } else if ((echeance - today) / 86400000 <= 3) {
+              status = "ATTENTE";
+              color = "#f59e0b";
+            } else {
+              status = "EN COURS";
+              color = "#3b82f6";
+            }
+          }
+
+          return (
+            <View style={[styles.cardPro, { borderLeftColor: color }]}>
+              
+              {/* TITRE */}
+              <Text style={styles.titlePro}>
+                {item.designation_produit}
+              </Text>
+
+              {/* DATE ÉCHÉANCE */}
+              <View style={styles.rowInfo}>
+                <Text style={styles.labelPro}>Échéance</Text>
+                <Text style={styles.valuePro}>
+                  {item.Date_echeance
+                    ? new Date(item.Date_echeance).toISOString().split("T")[0]
+                    : "-"}
+                </Text>
+              </View>
+
+              {/* MONTANT */}
+              <View style={styles.rowInfo}>
+                <Text style={styles.labelPro}>💰 Montant</Text>
+                <Text style={styles.valuePro}>
+                  {item.montant || 0} DH
+                </Text>
+              </View>
+
+              {/* STATUS */}
+              <View style={styles.statusRow}>
+                <View style={[styles.dot, { backgroundColor: color }]} />
+                <Text style={[styles.statusText, { color }]}>
+                  {status}
+                </Text>
+              </View>
+
+            </View>
+          );
+        }}
+      />
+
+      {/* BUTTON RETOUR */}
+      <TouchableOpacity
+        onPress={() => setShowPaiementScreen(false)}
+        style={styles.btnBackPro}
+      >
+        <Text style={styles.btnTextPro}>Retour</Text>
+      </TouchableOpacity>
+
+    </SafeAreaView>
+  );
+}
+
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient colors={["#2563eb", "#1e40af"]} style={styles.header}>
@@ -478,10 +646,6 @@ const handleAddProduct = () => {
         {item.produit_reference}
       </Text>
       <Text>
-        {/* {item.quantite_commande > 0 && item.quantite_commande}
-        {/* {item.quantite_commande > 0 && `${item.quantite_commande} rouleaux `} */}
-        {/* {item.metres_commandees > 0 && `+ ${item.metres_commandees} m`} */} 
-
          <Text style={{ color: "#64748b", fontSize: 12 }}>
         {item.prix_unitaire} × {item.quantite_commande} ={" "}
         <Text style={{ fontWeight: "bold", color: "#16a34a" }}>
@@ -498,6 +662,11 @@ const handleAddProduct = () => {
     >
       <Text style={{ color: "#fff", fontWeight: "bold" }}>X</Text>
     </TouchableOpacity>
+
+
+    
+
+
   </View>
 )}
 
@@ -563,6 +732,29 @@ const handleAddProduct = () => {
                 </View>
               )}
 
+              {showPaiementButton && (
+  <TouchableOpacity
+    onPress={() => {
+      if (!selectedClient) {
+        return Alert.alert("Erreur", "Choisissez un client");
+      }
+
+      setClientPaiement(selectedClient);
+      setShowPaiementScreen(true);
+    }}
+    style={{
+      backgroundColor: "#1e40af",
+      padding: 10,
+      marginTop: 10,
+      borderRadius: 6,
+    }}
+  >
+    <Text style={{ color: "#fff", textAlign: "center" }}>
+      Consulter situation paiement
+    </Text>
+  </TouchableOpacity>
+)}
+
           {/* TABLE DESIGN PRO */}
           <View style={styles.historyContainer}>
             <ScrollView horizontal  refreshControl={
@@ -625,6 +817,47 @@ const handleAddProduct = () => {
             </ScrollView>
           </View>
 
+  {/* MODAL 
+      <Modal visible={showPaiementModal} animationType="slide">
+        <View style={{ flex: 1, padding: 20 }}>
+
+          <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+            Situation Paiement
+          </Text>
+
+          <FlatList
+            data={commandesFiltrees}
+            keyExtractor={(i) => i.numCmd?.toString()}
+            renderItem={({ item }) => (
+              <View
+                style={{
+                  borderLeftWidth: 5,
+                  borderLeftColor: getStatusColor(item),
+                  padding: 10,
+                  marginVertical: 5,
+                  backgroundColor: "#fff",
+                }}
+              >
+                <Text>{item.designation_produit}</Text>
+                <Text>Date échéance: {item.Date_echeance}</Text>
+              </View>
+            )}
+          />
+
+          <TouchableOpacity
+            onPress={() => setShowPaiementModal(false)}
+            style={{ marginTop: 20 }}
+          >
+            <Text style={{ color: "red", textAlign: "center" }}>
+              Fermer
+            </Text>
+          </TouchableOpacity>
+
+        </View>
+      </Modal> */}
+
+
+      
           <View style={styles.totalBox}>
             <Text style={styles.totalLabel}>
               Chiffre du mois
@@ -738,5 +971,69 @@ deleteBtn: {
   paddingHorizontal: 10,
   paddingVertical: 6,
   borderRadius: 6,
+},
+
+cardPro: {
+  backgroundColor: "#fff",
+  borderRadius: 12,
+  padding: 14,
+  marginBottom: 12,
+  borderLeftWidth: 5,
+  elevation: 2,
+},
+
+titlePro: {
+  fontSize: 15,
+  fontWeight: "bold",
+  color: "#0f172a",
+  marginBottom: 10,
+},
+
+rowInfo: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  marginBottom: 6,
+},
+
+labelPro: {
+  fontSize: 12,
+  color: "#64748b",
+},
+
+valuePro: {
+  fontSize: 13,
+  fontWeight: "600",
+  color: "#111",
+},
+
+statusRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginTop: 10,
+},
+
+dot: {
+  width: 8,
+  height: 8,
+  borderRadius: 4,
+  marginRight: 6,
+},
+
+statusText: {
+  fontSize: 12,
+  fontWeight: "bold",
+},
+
+btnBackPro: {
+  backgroundColor: "#0f172a",
+  margin: 12,
+  padding: 14,
+  borderRadius: 10,
+  alignItems: "center",
+},
+
+btnTextPro: {
+  color: "#fff",
+  fontWeight: "bold",
 },
 });
