@@ -93,7 +93,7 @@ router.post("/multiples", async (req, res) => {
           metres_commandees;
 
         // ✅ montant ×100
-        montant = totalMetres * prix_unitaire * 100;
+        montant = totalMetres * prix_unitaire ;
 
         // insertion commande
         await connection.query(
