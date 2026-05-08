@@ -24,6 +24,8 @@ const monthLabels = [
   "Juil", "Août", "Sep", "Oct", "Nov", "Déc"
 ];
 
+
+
 const HomeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -31,6 +33,10 @@ const HomeScreen = () => {
   const [selectedYear, setSelectedYear] = useState(null);
 
   const [selectedPoint, setSelectedPoint] = useState(null);
+
+  const [hasNotification, setHasNotification] = useState(false);
+
+  const clientsAvecTransport = [209, 221, 281, 215];
 
   const [cardsData, setCardsData] = useState({
     totalEntrees: 0,
@@ -87,32 +93,139 @@ const HomeScreen = () => {
   };
 
   useEffect(() => {
-    const fetchYears = async () => {
-      try {
-        const res = await axios.get(`${API_BASE}/years`);
-        setYearList(res.data);
 
-        if (res.data.length > 0) {
-          const defaultYear = res.data[0];
-          setSelectedYear(defaultYear);
-          await fetchDashboard(defaultYear);
-        }
-      } catch (err) {
-        console.error('Erreur fetch years:', err);
-      } finally {
-        setLoading(false);
+  const initData = async () => {
+
+    try {
+
+      // =========================
+      // DASHBOARD
+      // =========================
+      const res = await axios.get(
+        `${API_BASE}/years`
+      );
+
+      setYearList(res.data);
+
+      if (res.data.length > 0) {
+
+        const defaultYear = res.data[0];
+
+        setSelectedYear(defaultYear);
+
+        await fetchDashboard(defaultYear);
       }
-    };
 
-    fetchYears();
-  }, []);
+      // =========================
+      // NOTIFICATIONS
+      // =========================
+      const resNotif = await axios.get(
+        'https://gestion-stock-app-production.up.railway.app/api/commandes'
+      );
+
+      const aujourdHui = new Date()
+        .toISOString()
+        .slice(0, 10);
+
+      const notifications = resNotif.data.filter(cmd => {
+
+        // pas de date
+        if (!cmd.Date_echeance) {
+          return false;
+        }
+
+        // seulement ces clients
+        if (
+          !clientsAvecTransport.includes(
+            Number(cmd.client_id)
+          )
+        ) {
+          return false;
+        }
+
+        const dateCmd = new Date(cmd.Date_echeance)
+          .toISOString()
+          .slice(0, 10);
+
+        // échéance aujourd'hui
+        return dateCmd === aujourdHui;
+      });
+
+      setHasNotification(
+        notifications.length > 0
+      );
+
+    } catch (err) {
+
+      console.log(
+        'Erreur chargement:',
+        err
+      );
+
+    } finally {
+
+      setLoading(false);
+    }
+  };
+
+  initData();
+
+}, []);
 
   const onRefresh = async () => {
-    if (!selectedYear) return;
-    setRefreshing(true);
+
+  if (!selectedYear) return;
+
+  setRefreshing(true);
+
+  try {
+
     await fetchDashboard(selectedYear);
+
+    // refresh notifications
+    const res = await axios.get(
+      'https://gestion-stock-app-production.up.railway.app/api/commandes'
+    );
+
+    const aujourdHui = new Date()
+      .toISOString()
+      .slice(0, 10);
+
+    const notifications = res.data.filter(cmd => {
+
+      // pas de date
+      if (!cmd.Date_echeance) {
+        return false;
+      }
+
+      // seulement ces clients
+      if (
+        !clientsAvecTransport.includes(
+          Number(cmd.client_id)
+        )
+      ) {
+        return false;
+      }
+
+      const dateCmd = new Date(cmd.Date_echeance)
+        .toISOString()
+        .slice(0, 10);
+
+      // échéance aujourd'hui
+      return dateCmd === aujourdHui;
+    });
+
+    setHasNotification(notifications.length > 0);
+
+  } catch (err) {
+
+    console.log(err);
+
+  } finally {
+
     setRefreshing(false);
-  };
+  }
+};
 
   if (loading) {
     return (
@@ -133,9 +246,34 @@ const HomeScreen = () => {
               <Text style={styles.headerSubtitle}>Suivi des ventes et commandes</Text>
             </View>
           </View>
-          <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
-            <Ionicons name="notifications-outline" size={28} color="#fff" />
-          </TouchableOpacity>
+          <TouchableOpacity
+  onPress={() => navigation.navigate('Notifications')}
+  style={{ position: 'relative' }}
+>
+
+  <Ionicons
+    name="notifications-outline"
+    size={28}
+    color="#fff"
+  />
+
+  {hasNotification && (
+    <View
+      style={{
+        position: 'absolute',
+        top: 0,
+        right: 0,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: 'red',
+        borderWidth: 1,
+        borderColor: '#fff',
+      }}
+    />
+  )}
+
+</TouchableOpacity>
         </View>
       </LinearGradient>
 
