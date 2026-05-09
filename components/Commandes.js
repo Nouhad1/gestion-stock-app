@@ -342,16 +342,26 @@ const handleAddProduct = () => {
 
         <View style={{ backgroundColor: "#fff", borderRadius: 8 }}>
           <Picker
-            selectedValue={selectedMonthPaiement}
-            onValueChange={(value) => setSelectedMonthPaiement(value)}
-          >
-            {[
-              "Janvier","Février","Mars","Avril","Mai","Juin",
-              "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
-            ].map((m, i) => (
-              <Picker.Item key={i} label={m} value={i + 1} />
-            ))}
-          </Picker>
+  selectedValue={selectedMonthPaiement}
+  onValueChange={(value) => setSelectedMonthPaiement(value)}
+  style={{
+    color: "#000",
+    backgroundColor: "#fff",
+  }}
+  dropdownIconColor="#000"
+>
+  {[
+    "Janvier","Février","Mars","Avril","Mai","Juin",
+    "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
+  ].map((m, i) => (
+    <Picker.Item
+      key={i}
+      label={m}
+      value={i + 1}
+      color="#000"
+    />
+  ))}
+</Picker>
         </View>
       </View>
 
@@ -684,16 +694,26 @@ const handleAddProduct = () => {
           <Text style={styles.label}>Choisissez le mois</Text>
           <View style={styles.pickerContainer}>
             <Picker
-              selectedValue={selectedMonth}
-              onValueChange={setSelectedMonth}
-            >
-              {[
-                "Janvier","Février","Mars","Avril","Mai","Juin",
-                "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
-              ].map((m, i) => (
-                <Picker.Item key={i} label={m} value={i + 1} />
-              ))}
-            </Picker>
+  selectedValue={selectedMonth}
+  onValueChange={setSelectedMonth}
+  style={{
+    color: "#000",
+    backgroundColor: "#fff",
+  }}
+  dropdownIconColor="#000"
+>
+  {[
+    "Janvier","Février","Mars","Avril","Mai","Juin",
+    "Juillet","Août","Septembre","Octobre","Novembre","Décembre"
+  ].map((m, i) => (
+    <Picker.Item
+      key={i}
+      label={m}
+      value={i + 1}
+      color="#000"
+    />
+  ))}
+</Picker>
           </View>
             <Text style={styles.label}>Entrez le client</Text>
            <TextInput
