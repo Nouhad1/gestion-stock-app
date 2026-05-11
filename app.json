@@ -2,12 +2,12 @@
   "expo": {
     "name": "Gestion Stock Pro",
     "slug": "gestion-stock",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/logo-modified.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "runtimeVersion": "1.0.5",
+    "runtimeVersion": "1.0.6",
     "extra": {
       "eas": {
         "projectId": "646c42a7-d54b-4069-85c7-e5f04d593c39"
