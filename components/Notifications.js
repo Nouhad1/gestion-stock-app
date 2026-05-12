@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
+ StyleSheet,
   FlatList,
 } from 'react-native';
 
@@ -35,7 +35,7 @@ const Notifications = () => {
           // filtre notifications
           const filtered = response.data.filter(cmd => {
 
-            // pas de date
+            // pas de date échéance
             if (!cmd.Date_echeance) {
               return false;
             }
@@ -46,6 +46,11 @@ const Notifications = () => {
                 Number(cmd.client_id)
               )
             ) {
+              return false;
+            }
+
+            // seulement NON PAYÉ
+            if (Number(cmd.paiement_id) === 1) {
               return false;
             }
 
@@ -90,13 +95,20 @@ const Notifications = () => {
       </Text>
 
       <Text style={styles.text}>
-        Montant : {Number(item.montant).toLocaleString('fr-FR')} DH
+        Montant : {Number(item.montant || 0)
+          .toLocaleString('fr-FR')} DH
       </Text>
 
       <Text style={styles.date}>
         Échéance : {new Date(item.Date_echeance)
           .toLocaleDateString('fr-FR')}
       </Text>
+
+      <View style={styles.badge}>
+        <Text style={styles.badgeText}>
+          NON PAYÉ
+        </Text>
+      </View>
 
     </View>
   );
@@ -184,6 +196,21 @@ const styles = StyleSheet.create({
     marginTop: 6,
     color: '#666',
     fontSize: 13,
+  },
+
+  badge: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+
+  badgeText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
   },
 
   emptyContainer: {
