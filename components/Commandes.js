@@ -340,7 +340,7 @@ const handleAddProduct = () => {
           Filtrer par mois de commande
         </Text>
 
-        <View style={{ backgroundColor: "#fff", borderRadius: 8 }}>
+        <View style={[styles.pickerWrapper, styles.pickerShadowBlue]}>
           <Picker
   selectedValue={selectedMonthPaiement}
   onValueChange={(value) => setSelectedMonthPaiement(value)}
@@ -616,10 +616,15 @@ const handleAddProduct = () => {
   <>
     <Text style={styles.label}>Choisir le transport</Text>
 
-    <View style={styles.dropdown}>
+    <View style={[styles.pickerWrapper, styles.pickerShadowBlue]}>
       <Picker
         selectedValue={transportId}
         onValueChange={(value) => setTransportId(value)} // ✅ correction
+        style={{
+    color: "#000",
+    backgroundColor: "#fff",
+  }}
+  dropdownIconColor="#000"
       >
         {transport.map((t) => (
           <Picker.Item key={t.value} label={t.label} value={t.value} />
@@ -634,10 +639,15 @@ const handleAddProduct = () => {
   <>
     <Text style={styles.label}>Statut du paiement</Text>
 
-    <View style={styles.dropdown}>
+    <View style={[styles.pickerWrapper, styles.pickerShadowBlue]}>
       <Picker
         selectedValue={paiementId}
         onValueChange={(value) => setPaiementId(value)}
+        style={{
+    color: "#000",
+    backgroundColor: "#fff",
+  }}
+  dropdownIconColor="#000"
       >
         {paiement.map((p) => (
           <Picker.Item key={p.value} label={p.label} value={p.value} />
@@ -692,7 +702,7 @@ const handleAddProduct = () => {
       ) : (
         <View style={{ flex: 1, padding: 10 }}>
           <Text style={styles.label}>Choisissez le mois</Text>
-          <View style={styles.pickerContainer}>
+          <View style={[styles.pickerWrapper, styles.pickerShadowBlue]}>
             <Picker
   selectedValue={selectedMonth}
   onValueChange={setSelectedMonth}
@@ -835,49 +845,7 @@ const handleAddProduct = () => {
                 </ScrollView>
               </View>
             </ScrollView>
-          </View>
-
-  {/* MODAL 
-      <Modal visible={showPaiementModal} animationType="slide">
-        <View style={{ flex: 1, padding: 20 }}>
-
-          <Text style={{ fontSize: 18, fontWeight: "bold" }}>
-            Situation Paiement
-          </Text>
-
-          <FlatList
-            data={commandesFiltrees}
-            keyExtractor={(i) => i.numCmd?.toString()}
-            renderItem={({ item }) => (
-              <View
-                style={{
-                  borderLeftWidth: 5,
-                  borderLeftColor: getStatusColor(item),
-                  padding: 10,
-                  marginVertical: 5,
-                  backgroundColor: "#fff",
-                }}
-              >
-                <Text>{item.designation_produit}</Text>
-                <Text>Date échéance: {item.Date_echeance}</Text>
-              </View>
-            )}
-          />
-
-          <TouchableOpacity
-            onPress={() => setShowPaiementModal(false)}
-            style={{ marginTop: 20 }}
-          >
-            <Text style={{ color: "red", textAlign: "center" }}>
-              Fermer
-            </Text>
-          </TouchableOpacity>
-
-        </View>
-      </Modal> */}
-
-
-      
+          </View>      
           <View style={styles.totalBox}>
             <Text style={styles.totalLabel}>
               Chiffre du mois
@@ -1056,4 +1024,57 @@ btnTextPro: {
   color: "#fff",
   fontWeight: "bold",
 },
+
+pickerWrapper: {
+  backgroundColor: "#ffffff",
+  borderRadius: 14,
+  borderWidth: 1,
+  borderColor: "#dbe3ef",
+  marginBottom: 14,
+
+  shadowColor: "#000",
+  shadowOffset: {
+    width: 0,
+    height: 2,
+  },
+  shadowOpacity: 0.08,
+  shadowRadius: 4,
+
+  elevation: 3,
+
+  overflow: "hidden",
+},
+
+picker: {
+  height: 55,
+  color: "#0f172a",
+  backgroundColor: "#ffffff",
+},
+
+pickerInner: {
+  borderRadius: 14,
+  backgroundColor: "#f8fafc",
+},
+
+pickerIcon: {
+  color: "#2563eb",
+},
+
+pickerFocused: {
+  borderColor: "#2563eb",
+  borderWidth: 1.5,
+},
+
+pickerShadowBlue: {
+  shadowColor: "#2563eb",
+  shadowOffset: {
+    width: 0,
+    height: 2,
+  },
+  shadowOpacity: 0.12,
+  shadowRadius: 5,
+
+  elevation: 4,
+},
+
 });

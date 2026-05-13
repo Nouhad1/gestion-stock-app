@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -104,50 +104,121 @@ export default function ProductTable() {
     );
   };
 
-  const renderItem = ({ item, index }) => {
+  // ✅ TOTAL GÉNÉRAL
+const totalGeneral = useMemo(() => {
+
+  return filteredProduits.reduce((sum, item) => {
+
     const depot1 = Number(item.quantite_stock || 0);
     const depot2 = Number(item.quantite_stock_2 || 0);
-
-    const stockSelected =
-      selectedDepot === 'depot1' ? depot1 : depot2;
 
     const global = depot1 + depot2;
 
     const prixUnitaire =
       item.prix_unitaire && !isNaN(item.prix_unitaire)
         ? Number(item.prix_unitaire)
-        : null;
+        : 0;
 
-    const prixUnitaireStr =
-      prixUnitaire !== null ? prixUnitaire.toFixed(2) : '-';
+    return sum + (prixUnitaire * global);
 
-    const prixTotal =
-      prixUnitaire !== null
-        ? (prixUnitaire * global).toFixed(2)
-        : '-';
+  }, 0);
 
-    const prixMoyen =
-      item.prix_moyen_achat && !isNaN(item.prix_moyen_achat)
-        ? Number(item.prix_moyen_achat).toFixed(2)
-        : '-';
+}, [filteredProduits]);
 
-    return (
-      <View style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}>
-        <Text style={[styles.cell, { width: 100 }]}>{item.reference}</Text>
-        <Text style={[styles.cell, { width: 400 }]}>{item.designation}</Text>
-        <Text style={[styles.cell, { width: 150 }]}>{stockSelected}</Text>
-        <Text style={[styles.cell, { width: 80 }]}>{global}</Text>
+const renderItem = useCallback(({ item, index }) => {
 
-        <Text style={[styles.cell, { width: 120 }]}>{prixUnitaireStr} MAD</Text>
-        <Text style={[styles.cell, { width: 120 }]}>{prixTotal} MAD</Text>
-        <Text style={[styles.cell, { width: 120 }]}>{prixMoyen} MAD</Text>
+  const depot1 = Number(item.quantite_stock || 0);
+  const depot2 = Number(item.quantite_stock_2 || 0);
 
-        <View style={{ width: 100 }}>
-          {renderAvailability(global, item.designation)}
+  const stockSelected =
+    selectedDepot === 'depot1'
+      ? depot1
+      : depot2;
+
+  const global = depot1 + depot2;
+
+  const prixUnitaire =
+    item.prix_unitaire && !isNaN(item.prix_unitaire)
+      ? Number(item.prix_unitaire)
+      : 0;
+
+  const prixTotal = prixUnitaire * global;
+
+  const prixMoyen =
+    item.prix_moyen_achat &&
+    !isNaN(item.prix_moyen_achat)
+      ? Number(item.prix_moyen_achat)
+      : 0;
+
+  let label = 'Dispo';
+  let style = styles.inStock;
+
+  const threshold = getStockThreshold(item.designation);
+
+  if (global <= 0) {
+    label = 'Rupture';
+    style = styles.outOfStock;
+  } else if (global < threshold) {
+    label = 'Faible';
+    style = styles.lowStock;
+  }
+
+  return (
+    <View
+      style={[
+        styles.row,
+        index % 2 === 0
+          ? styles.rowEven
+          : styles.rowOdd,
+      ]}
+    >
+      <Text style={[styles.cell, { width: 120 }]}>
+        {item.reference}
+      </Text>
+
+      <Text style={[styles.cell, { width: 400 }]}>
+        {item.designation}
+      </Text>
+
+      <Text style={[styles.cell, { width: 150 }]}>
+        {stockSelected}
+      </Text>
+
+      <Text style={[styles.cell, { width: 80 }]}>
+        {global}
+      </Text>
+
+      <Text style={[styles.cell, { width: 120 }]}>
+  {prixUnitaire.toLocaleString('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} MAD
+</Text>
+
+<Text style={[styles.cell, { width: 120 }]}>
+  {prixTotal.toLocaleString('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} MAD
+</Text>
+
+<Text style={[styles.cell, { width: 120 }]}>
+  {prixMoyen.toLocaleString('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} MAD
+</Text>
+      <View style={{ width: 100 }}>
+        <View style={[styles.availability, style]}>
+          <Text style={styles.availabilityText}>
+            {label}
+          </Text>
         </View>
       </View>
-    );
-  };
+    </View>
+  );
+
+}, [selectedDepot]);
 
   if (loading) {
     return (
@@ -194,7 +265,7 @@ export default function ProductTable() {
       <ScrollView horizontal>
         <View>
           <View style={[styles.row, styles.headerRow]}>
-            <Text style={[styles.headerCell, { width: 100 }]}>Ref</Text>
+            <Text style={[styles.headerCell, { width: 120 }]}>Référence</Text>
             <Text style={[styles.headerCell, { width: 400 }]}>Désignation</Text>
             <Text style={[styles.headerCell, { width: 150 }]}>Stock</Text>
             <Text style={[styles.headerCell, { width: 80 }]}>Global</Text>
@@ -205,13 +276,64 @@ export default function ProductTable() {
           </View>
 
           <FlatList
-            data={filteredProduits}
-            keyExtractor={(item) => item.reference}
-            renderItem={renderItem}
-            refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-            }
-          />
+  data={filteredProduits}
+  keyExtractor={(item) => item.reference}
+  renderItem={renderItem}
+
+  initialNumToRender={15}
+  maxToRenderPerBatch={10}
+  windowSize={10}
+  removeClippedSubviews={true}
+
+  refreshControl={
+    <RefreshControl
+      refreshing={refreshing}
+      onRefresh={onRefresh}
+    />
+  }
+/>
+
+          <View
+  style={[
+    styles.row,
+    {
+      backgroundColor: '#dbeafe',
+      borderTopWidth: 2,
+      borderTopColor: '#2563eb',
+    },
+  ]}
+>
+  <Text
+    style={[
+      styles.cell,
+      {
+        width: 850,
+        fontWeight: 'bold',
+        textAlign: 'right',
+        color: '#000',
+      },
+    ]}
+  >
+    TOTAL GÉNÉRAL :
+  </Text>
+
+  <Text
+    style={[
+      styles.cell,
+      {
+        width: 120,
+        fontWeight: 'bold',
+        color: '#16a34a',
+      },
+    ]}
+  >
+    {totalGeneral.toLocaleString('fr-FR', {
+      minimumFractionDigits: 2,
+    })} MAD
+  </Text>
+
+  <View style={{ width: 100 }} />
+</View>
         </View>
       </ScrollView>
     </SafeAreaView>
