@@ -7,6 +7,7 @@ import HomeScreen from './HomeScreen';
 import Achats from './EditableAchatList';
 import Commandes from './Commandes';
 import Produits from './Produits';
+import Transfert from './TransfertStock'
 
 const Tab = createBottomTabNavigator();
 
@@ -77,7 +78,22 @@ export default function BottomTabNavigator() {
         }}
       />
 
-      {/* ✅ Achats — CORRIGÉ */}
+       {/* Transfert */}
+{/* <Tab.Screen
+  name="Transfert"
+  component={Transfert}
+  options={{
+    tabBarLabel: 'Transfert',
+    tabBarIcon: ({ color, focused }) => (
+      <Icon
+        name="file-invoice"
+        color={color}
+        size={focused ? 20 : 18}
+      />
+    ),
+  }}
+/> */}
+      {/* ✅ Achats*/}
       <Tab.Screen
         name="Achats"
         component={Achats}

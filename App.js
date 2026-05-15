@@ -4,7 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import LoginScreen from './components/LoginScreen';
-import ProductDetailScreen from './components/ProductDetailScreen';
+//import ProductDetailScreen from './components/ProductDetailScreen';
 import NotificationsScreen from './components/Notifications';
 import BottomTabNavigator from './components/BottomTabNavigator';
 
@@ -29,15 +29,15 @@ export default function App() {
           component={BottomTabNavigator}
           options={{ headerShown: false }}
         />
-        <Stack.Screen
+        {/* <Stack.Screen
           name="ProductDetail"
           component={ProductDetailScreen}
           options={{ title: 'Détails du produit', headerShown: true }}
-        />
+        />*/}
         <Stack.Screen
           name="Notifications"
           component={NotificationsScreen}
-        />
+        /> 
       </Stack.Navigator>
     </NavigationContainer>
   );
