@@ -79,7 +79,7 @@ export default function BottomTabNavigator() {
       />
 
        {/* Transfert */}
-{/* <Tab.Screen
+ <Tab.Screen
   name="Transfert"
   component={Transfert}
   options={{
@@ -92,7 +92,7 @@ export default function BottomTabNavigator() {
       />
     ),
   }}
-/> */}
+/> 
       {/* ✅ Achats*/}
       <Tab.Screen
         name="Achats"

@@ -13,11 +13,14 @@ import axios from 'axios';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-//
+
 import DropDownPicker from 'react-native-dropdown-picker';
 
 const API_URL =
   'https://gestion-stock-app-production.up.railway.app/api/produits';
+
+const API_TRANSFERT =
+  'https://gestion-stock-app-production.up.railway.app/api/transferts';
 
 export default function Transferts() {
 
@@ -35,27 +38,40 @@ export default function Transferts() {
 
   const [openDestination, setOpenDestination] = useState(false);
 
-  const [depotSource, setDepotSource] = useState('depot1');
+  const [depotSource, setDepotSource] =
+    useState('depot1');
 
   const [depotDestination, setDepotDestination] =
     useState('depot2');
 
   const depots = [
-    { label: 'Hay Mohammadi', value: 'depot1' },
-    { label: 'Had Soualem', value: 'depot2' },
+    {
+      label: 'Hay Mohammadi',
+      value: 'depot1',
+    },
+    {
+      label: 'Had Soualem',
+      value: 'depot2',
+    },
   ];
 
   /* ================= FETCH PRODUITS ================= */
 
   const fetchProduits = async () => {
+
     try {
 
       const res = await axios.get(API_URL);
 
       const formatted = res.data.map((item) => ({
-        label: `${item.reference} - ${item.designation}`,
+
+        label:
+          `${item.reference} - ${item.designation}`,
+
         value: item.reference,
+
         data: item,
+
       }));
 
       setProduits(formatted);
@@ -72,12 +88,13 @@ export default function Transferts() {
     } finally {
 
       setLoading(false);
-
     }
   };
 
   useEffect(() => {
+
     fetchProduits();
+
   }, []);
 
   /* ================= PRODUIT SELECTIONNÉ ================= */
@@ -104,44 +121,85 @@ export default function Transferts() {
 
   /* ================= TRANSFERT ================= */
 
-  const handleTransfer = () => {
+  const handleTransfer = async () => {
 
-    if (!selectedProduit) {
-      return Alert.alert(
+    try {
+
+      if (!selectedProduit) {
+
+        return Alert.alert(
+          'Erreur',
+          'Sélectionnez un produit'
+        );
+      }
+
+      if (
+        !quantite ||
+        Number(quantite) <= 0
+      ) {
+
+        return Alert.alert(
+          'Erreur',
+          'Entrez une quantité valide'
+        );
+      }
+
+      if (
+        depotSource === depotDestination
+      ) {
+
+        return Alert.alert(
+          'Erreur',
+          'Les dépôts doivent être différents'
+        );
+      }
+
+      if (
+        Number(quantite) > stockDisponible
+      ) {
+
+        return Alert.alert(
+          'Stock insuffisant',
+          `Stock disponible : ${stockDisponible}`
+        );
+      }
+
+      /* ================= API ================= */
+
+      await axios.post(
+        API_TRANSFERT,
+        {
+          produit_reference: selectedProduit,
+          depot_source: depotSource,
+          depot_destination: depotDestination,
+          quantite: Number(quantite),
+        }
+      );
+
+      Alert.alert(
+        'Succès',
+        'Transfert effectué'
+      );
+
+      setQuantite('');
+
+      setSelectedProduit(null);
+
+      fetchProduits();
+
+    } catch (err) {
+
+      console.log(err);
+
+      Alert.alert(
         'Erreur',
-        'Sélectionnez un produit'
+        'Erreur lors du transfert'
       );
     }
-
-    if (!quantite || Number(quantite) <= 0) {
-      return Alert.alert(
-        'Erreur',
-        'Entrez une quantité valide'
-      );
-    }
-
-    if (depotSource === depotDestination) {
-      return Alert.alert(
-        'Erreur',
-        'Les dépôts doivent être différents'
-      );
-    }
-
-    if (Number(quantite) > stockDisponible) {
-      return Alert.alert(
-        'Stock insuffisant',
-        `Stock disponible: ${stockDisponible}`
-      );
-    }
-
-    Alert.alert(
-      'Succès',
-      'Transfert prêt à être envoyé au backend'
-    );
-
   };
 
   if (loading) {
+
     return (
       <View style={styles.center}>
         <ActivityIndicator
@@ -153,6 +211,7 @@ export default function Transferts() {
   }
 
   return (
+
     <SafeAreaView style={styles.container}>
 
       {/* HEADER */}
@@ -160,16 +219,23 @@ export default function Transferts() {
         colors={['#2563eb', '#1e40af']}
         style={styles.header}
       >
+
         <Text style={styles.headerTitle}>
           🚚 Transfert de Stock
         </Text>
+
       </LinearGradient>
 
-      {/* CONTENU */}
+      {/* CONTENT */}
       <View style={styles.content}>
 
         {/* PRODUIT */}
-        <View style={[styles.section, { zIndex: 3000 }]}>
+        <View
+          style={[
+            styles.section,
+            { zIndex: 3000 },
+          ]}
+        >
 
           <Text style={styles.label}>
             Produit
@@ -185,13 +251,20 @@ export default function Transferts() {
             searchable={true}
             placeholder="Sélectionner un produit"
             style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
+            dropDownContainerStyle={
+              styles.dropdownContainer
+            }
           />
 
         </View>
 
-        {/* DEPOT SOURCE */}
-        <View style={[styles.section, { zIndex: 2000 }]}>
+        {/* SOURCE */}
+        <View
+          style={[
+            styles.section,
+            { zIndex: 2000 },
+          ]}
+        >
 
           <Text style={styles.label}>
             Dépôt source
@@ -205,13 +278,20 @@ export default function Transferts() {
             setValue={setDepotSource}
             setItems={() => {}}
             style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
+            dropDownContainerStyle={
+              styles.dropdownContainer
+            }
           />
 
         </View>
 
-        {/* DEPOT DESTINATION */}
-        <View style={[styles.section, { zIndex: 1000 }]}>
+        {/* DESTINATION */}
+        <View
+          style={[
+            styles.section,
+            { zIndex: 1000 },
+          ]}
+        >
 
           <Text style={styles.label}>
             Dépôt destination
@@ -225,12 +305,14 @@ export default function Transferts() {
             setValue={setDepotDestination}
             setItems={() => {}}
             style={styles.dropdown}
-            dropDownContainerStyle={styles.dropdownContainer}
+            dropDownContainerStyle={
+              styles.dropdownContainer
+            }
           />
 
         </View>
 
-        {/* STOCK DISPONIBLE */}
+        {/* STOCK */}
         <View style={styles.stockCard}>
 
           <Text style={styles.stockLabel}>

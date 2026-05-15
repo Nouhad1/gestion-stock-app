@@ -25,6 +25,7 @@ const achatsRoutes = require('../routes/achatsRoute');
 const clientsRoutes = require('../routes/clientsRoute');
 const homeRoute = require('../routes/HomeRoutes');
 const statutRoutes = require("../routes/statutPaiement");
+const transfertsRoutes = require('./routes/transferts');
 
 
 app.use('/api/produits', produitsRoutes);
@@ -33,6 +34,8 @@ app.use('/api/achats', achatsRoutes);
 app.use('/api/clients', clientsRoutes);
 app.use('/api/dashboard', homeRoute);
 app.use("/api/statut", statutRoutes);
+app.use('/api/transferts',transfertsRoutes);
+
 
 // --- Route de login ---
 app.post('/api/login', (req, res) => {
