@@ -8,7 +8,7 @@ const db = require('../backend/db');
    TRANSFERT STOCK
 ========================= */
 
-router.post('/', async (req, res) => {
+/* router.post('/', async (req, res) => {
 
   try {
 
@@ -69,7 +69,7 @@ router.post('/', async (req, res) => {
        CALCUL STOCKS
     ========================= */
 
-    let nouveauStock1 =
+   /*  let nouveauStock1 =
       Number(produit.quantite_stock || 0);
 
     let nouveauStock2 =
@@ -80,20 +80,20 @@ router.post('/', async (req, res) => {
       nouveauStock1 -= Number(quantite);
     } else {
       nouveauStock2 -= Number(quantite);
-    }
+    } */
 
     // entrée destination
-    if (depot_destination === 'depot1') {
+    /* if (depot_destination === 'depot1') {
       nouveauStock1 += Number(quantite);
     } else {
       nouveauStock2 += Number(quantite);
-    }
+    } */
 
     /* =========================
        UPDATE PRODUITS
     ========================= */
 
-    await db.promise().query(
+    /* await db.promise().query(
       `
       UPDATE produits
       SET
@@ -106,13 +106,13 @@ router.post('/', async (req, res) => {
         nouveauStock2,
         produit_reference,
       ]
-    );
+    ); */
 
     /* =========================
        HISTORIQUE
     ========================= */
 
-    await db.promise().query(
+    /* await db.promise().query(
       `
       INSERT INTO transferts_stock (
         produit_reference,
@@ -146,13 +146,13 @@ router.post('/', async (req, res) => {
       message: 'Erreur serveur',
     });
   }
-});
+});  */
 
 /* =========================
    AJOUT HISTORIQUE
 ========================= */
 
-router.post('/historique-transferts', async (req, res) => {
+router.post('/transferts_stock', async (req, res) => {
 
     try {
 
