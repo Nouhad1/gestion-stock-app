@@ -7,6 +7,7 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  FlatList,
 } from 'react-native';
 
 import axios from 'axios';
@@ -36,7 +37,17 @@ export default function Transferts() {
   const [depotSource, setDepotSource] = useState('depot1');
   const [depotDestination, setDepotDestination] = useState('depot2');
 
+  const [historique, setHistorique] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+
   const matriculeConnecte = 'EMP001';
+
+  const employesAutorises = [
+    'ADMP001',
+    'EMP001',
+    'EMP002',
+    'EMP003',
+  ];
 
   const depots = [
     { label: 'Hay Mohammadi', value: 'depot1' },
@@ -49,7 +60,7 @@ export default function Transferts() {
     try {
       const res = await axios.get(API_URL);
 
-      const formatted = res.data.map(item => ({
+      const formatted = res.data.map((item) => ({
         label: `${item.reference} - ${item.designation}`,
         value: item.reference,
         data: item,
@@ -64,15 +75,29 @@ export default function Transferts() {
     }
   };
 
+  /* ================= HISTORIQUE ================= */
+
+  const fetchHistorique = async () => {
+    try {
+      const res = await axios.get(`${API_TRANSFERT}/historique`);
+      setHistorique(res.data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   useEffect(() => {
     fetchProduits();
+    fetchHistorique();
   }, []);
 
-  /* ================= STOCK ================= */
+  /* ================= PRODUIT ================= */
 
   const produitData = useMemo(() => {
     return produits.find(p => p.value === selectedProduit)?.data;
   }, [selectedProduit, produits]);
+
+  /* ================= STOCK ================= */
 
   const stockDisponible = useMemo(() => {
     if (!produitData) return 0;
@@ -85,19 +110,19 @@ export default function Transferts() {
   /* ================= TRANSFERT ================= */
 
   const handleTransfer = async () => {
-
-    if (!selectedProduit) return Alert.alert('Erreur', 'Produit requis');
-
-    if (!quantite || Number(quantite) <= 0)
-      return Alert.alert('Erreur', 'Quantité invalide');
-
-    if (depotSource === depotDestination)
-      return Alert.alert('Erreur', 'Dépôts identiques');
-
-    if (Number(quantite) > stockDisponible)
-      return Alert.alert('Stock insuffisant', `${stockDisponible}`);
-
     try {
+
+      if (!selectedProduit)
+        return Alert.alert('Erreur', 'Sélectionnez un produit');
+
+      if (!quantite || Number(quantite) <= 0)
+        return Alert.alert('Erreur', 'Quantité invalide');
+
+      if (depotSource === depotDestination)
+        return Alert.alert('Erreur', 'Dépôts identiques interdits');
+
+      if (Number(quantite) > stockDisponible)
+        return Alert.alert('Stock insuffisant', `Stock: ${stockDisponible}`);
 
       await axios.post(API_TRANSFERT, {
         matricule: matriculeConnecte,
@@ -113,9 +138,11 @@ export default function Transferts() {
       setSelectedProduit(null);
 
       fetchProduits();
+      fetchHistorique();
 
     } catch (err) {
-      Alert.alert('Erreur', 'Erreur transfert');
+      console.log(err);
+      Alert.alert('Erreur', 'Transfert échoué');
     }
   };
 
@@ -130,8 +157,9 @@ export default function Transferts() {
   return (
     <SafeAreaView style={styles.container}>
 
+      {/* HEADER */}
       <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.header}>
-        <Text style={styles.headerTitle}>🚚 Transfert Stock</Text>
+        <Text style={styles.headerTitle}>🚚 Transfert de Stock</Text>
       </LinearGradient>
 
       <View style={styles.content}>
@@ -144,28 +172,34 @@ export default function Transferts() {
           setOpen={setOpenProduit}
           setValue={setSelectedProduit}
           setItems={setProduits}
+          placeholder="Produit"
         />
 
-        {/* SOURCE */}
+        {/* DEPOTS */}
         <DropDownPicker
           open={openSource}
           value={depotSource}
           items={depots}
           setOpen={setOpenSource}
           setValue={setDepotSource}
+          setItems={() => {}}
+          placeholder="Dépôt source"
         />
 
-        {/* DESTINATION */}
         <DropDownPicker
           open={openDestination}
           value={depotDestination}
           items={depots}
           setOpen={setOpenDestination}
           setValue={setDepotDestination}
+          setItems={() => {}}
+          placeholder="Dépôt destination"
         />
 
         {/* STOCK */}
-        <Text>Stock: {stockDisponible}</Text>
+        <Text style={styles.stock}>
+          Stock: {stockDisponible}
+        </Text>
 
         {/* QUANTITE */}
         <TextInput
@@ -181,19 +215,76 @@ export default function Transferts() {
           <Text style={styles.buttonText}>TRANSFÉRER</Text>
         </TouchableOpacity>
 
-      </View>
+        {/* HISTORIQUE BUTTON */}
+        <TouchableOpacity
+          style={[styles.button, { backgroundColor: '#111' }]}
+          onPress={() => setShowHistory(!showHistory)}
+        >
+          <Text style={styles.buttonText}>
+            {showHistory ? 'Cacher historique' : 'Voir historique'}
+          </Text>
+        </TouchableOpacity>
 
+        {/* HISTORIQUE */}
+        {showHistory && (
+          <FlatList
+            data={historique}
+            keyExtractor={(item) => item.id?.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.historyItem}>
+                <Text>{item.matricule}</Text>
+                <Text>{item.produit_reference}</Text>
+                <Text>{item.quantite}</Text>
+                <Text>{item.depot_source} → {item.depot_destination}</Text>
+              </View>
+            )}
+          />
+        )}
+
+      </View>
     </SafeAreaView>
   );
 }
 
+/* ================= STYLE ================= */
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f7fb' },
+
   header: { padding: 18 },
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+
   content: { padding: 15 },
-  input: { borderWidth: 1, padding: 10, marginTop: 10 },
-  button: { backgroundColor: '#2563eb', padding: 15, marginTop: 20 },
-  buttonText: { color: '#fff', textAlign: 'center' },
+
+  input: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+
+  button: {
+    backgroundColor: '#2563eb',
+    padding: 14,
+    marginTop: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+
+  buttonText: { color: '#fff', fontWeight: 'bold' },
+
+  stock: {
+    marginTop: 10,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  historyItem: {
+    backgroundColor: '#fff',
+    padding: 10,
+    marginTop: 10,
+    borderRadius: 8,
+  },
+
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
