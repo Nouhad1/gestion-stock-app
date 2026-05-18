@@ -1,25 +1,35 @@
 const express = require('express');
-
 const router = express.Router();
-
 const db = require('../backend/db');
 
 /* =========================
-   TRANSFERT STOCK
+   EMPLOYÉS AUTORISÉS
+========================= */
+const employesAutorises = [
+  'ADMP001',
+  'EMP001',
+  'EMP002',
+  'EMP003',
+];
+
+/* =========================
+   TRANSFERT STOCK + HISTORIQUE
 ========================= */
 
-/* router.post('/', async (req, res) => {
+router.post('/', async (req, res) => {
 
   try {
 
     const {
+      matricule,
       produit_reference,
       depot_source,
       depot_destination,
       quantite,
     } = req.body;
 
-    // validation
+    /* ================= VALIDATION ================= */
+
     if (
       !produit_reference ||
       !depot_source ||
@@ -31,138 +41,67 @@ const db = require('../backend/db');
       });
     }
 
-    // récupération produit
-    const [produits] =
-      await db.promise().query(
-        `
-        SELECT *
-        FROM produits
-        WHERE reference = ?
-      `,
-        [produit_reference]
-      );
+    /* ================= PRODUIT ================= */
 
-    if (produits.length === 0) {
+    const [rows] = await db.promise().query(
+      `SELECT * FROM produits WHERE reference = ?`,
+      [produit_reference]
+    );
 
+    if (rows.length === 0) {
       return res.status(404).json({
         message: 'Produit introuvable',
       });
     }
 
-    const produit = produits[0];
+    const produit = rows[0];
 
-    // stock source
-    const stockSource =
+    /* ================= STOCK SOURCE ================= */
+
+    let stockSource =
       depot_source === 'depot1'
         ? Number(produit.quantite_stock || 0)
         : Number(produit.quantite_stock_2 || 0);
 
-    // vérification stock
     if (Number(quantite) > stockSource) {
-
       return res.status(400).json({
         message: 'Stock insuffisant',
       });
     }
 
-    /* =========================
-       CALCUL STOCKS
-    ========================= */
+    /* ================= CALCUL STOCK ================= */
 
-   /*  let nouveauStock1 =
-      Number(produit.quantite_stock || 0);
+    let stock1 = Number(produit.quantite_stock || 0);
+    let stock2 = Number(produit.quantite_stock_2 || 0);
 
-    let nouveauStock2 =
-      Number(produit.quantite_stock_2 || 0);
-
-    // sortie source
+    // sortie
     if (depot_source === 'depot1') {
-      nouveauStock1 -= Number(quantite);
+      stock1 -= Number(quantite);
     } else {
-      nouveauStock2 -= Number(quantite);
-    } */
+      stock2 -= Number(quantite);
+    }
 
-    // entrée destination
-    /* if (depot_destination === 'depot1') {
-      nouveauStock1 += Number(quantite);
+    // entrée
+    if (depot_destination === 'depot1') {
+      stock1 += Number(quantite);
     } else {
-      nouveauStock2 += Number(quantite);
-    } */
+      stock2 += Number(quantite);
+    }
 
-    /* =========================
-       UPDATE PRODUITS
-    ========================= */
+    /* ================= UPDATE PRODUIT ================= */
 
-    /* await db.promise().query(
+    await db.promise().query(
       `
       UPDATE produits
-      SET
-        quantite_stock = ?,
-        quantite_stock_2 = ?
+      SET quantite_stock = ?, quantite_stock_2 = ?
       WHERE reference = ?
-    `,
-      [
-        nouveauStock1,
-        nouveauStock2,
-        produit_reference,
-      ]
-    ); */
-
-    /* =========================
-       HISTORIQUE
-    ========================= */
-
-    /* await db.promise().query(
-      `
-      INSERT INTO transferts_stock (
-        produit_reference,
-        depot_source,
-        depot_destination,
-        quantite
-      )
-      VALUES (?, ?, ?, ?)
-    `,
-      [
-        produit_reference,
-        depot_source,
-        depot_destination,
-        quantite,
-      ]
+      `,
+      [stock1, stock2, produit_reference]
     );
 
-    res.json({
-      success: true,
-      message: 'Transfert effectué',
-    });
+    /* ================= HISTORIQUE (SEULEMENT AUTORISÉS) ================= */
 
-  } catch (err) {
-
-    console.log(
-      'Erreur transfert:',
-      err
-    );
-
-    res.status(500).json({
-      message: 'Erreur serveur',
-    });
-  }
-});  */
-
-/* =========================
-   AJOUT HISTORIQUE
-========================= */
-
-router.post('/transferts_stock', async (req, res) => {
-
-    try {
-
-      const {
-        matricule,
-        produit_reference,
-        depot_source,
-        depot_destination,
-        quantite,
-      } = req.body;
+    if (employesAutorises.includes(matricule)) {
 
       await db.promise().query(
         `
@@ -171,10 +110,11 @@ router.post('/transferts_stock', async (req, res) => {
           produit_reference,
           depot_source,
           depot_destination,
-          quantite
+          quantite,
+          date_transfert
         )
-        VALUES (?, ?, ?, ?, ?)
-      `,
+        VALUES (?, ?, ?, ?, ?, NOW())
+        `,
         [
           matricule,
           produit_reference,
@@ -183,20 +123,49 @@ router.post('/transferts_stock', async (req, res) => {
           quantite,
         ]
       );
-
-      res.json({
-        success: true,
-      });
-
-    } catch (err) {
-
-      console.log(err);
-
-      res.status(500).json({
-        message: 'Erreur historique',
-      });
     }
+
+    return res.json({
+      success: true,
+      message: 'Transfert effectué',
+    });
+
+  } catch (err) {
+
+    console.log('Erreur transfert:', err);
+
+    return res.status(500).json({
+      message: 'Erreur serveur',
+    });
   }
-);
+});
+
+/* =========================
+   HISTORIQUE GET
+========================= */
+
+router.get('/historique', async (req, res) => {
+
+  try {
+
+    const [rows] = await db.promise().query(
+      `
+      SELECT *
+      FROM historique_transferts
+      ORDER BY id DESC
+      `
+    );
+
+    res.json(rows);
+
+  } catch (err) {
+
+    console.log(err);
+
+    res.status(500).json({
+      message: 'Erreur serveur',
+    });
+  }
+});
 
 module.exports = router;
