@@ -149,32 +149,54 @@ router.post('/', async (req, res) => {
 });
 
 /* =========================
-   HISTORIQUE
+   AJOUT HISTORIQUE
 ========================= */
 
-router.get('/', async (req, res) => {
+router.post('/historique-transferts', async (req, res) => {
 
-  try {
+    try {
 
-    const [rows] =
+      const {
+        matricule,
+        produit_reference,
+        depot_source,
+        depot_destination,
+        quantite,
+      } = req.body;
+
       await db.promise().query(
         `
-        SELECT *
-        FROM transferts_stock
-        ORDER BY id DESC
-      `
+        INSERT INTO historique_transferts (
+          matricule,
+          produit_reference,
+          depot_source,
+          depot_destination,
+          quantite
+        )
+        VALUES (?, ?, ?, ?, ?)
+      `,
+        [
+          matricule,
+          produit_reference,
+          depot_source,
+          depot_destination,
+          quantite,
+        ]
       );
 
-    res.json(rows);
+      res.json({
+        success: true,
+      });
 
-  } catch (err) {
+    } catch (err) {
 
-    console.log(err);
+      console.log(err);
 
-    res.status(500).json({
-      message: 'Erreur serveur',
-    });
+      res.status(500).json({
+        message: 'Erreur historique',
+      });
+    }
   }
-});
+);
 
 module.exports = router;

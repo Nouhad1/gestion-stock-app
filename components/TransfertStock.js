@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+
 import {
   View,
   Text,
@@ -12,6 +13,7 @@ import {
 import axios from 'axios';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { LinearGradient } from 'expo-linear-gradient';
 
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -21,6 +23,9 @@ const API_URL =
 
 const API_TRANSFERT =
   'https://gestion-stock-app-production.up.railway.app/api/transferts';
+
+const API_HISTORIQUE =
+  'https://gestion-stock-app-production.up.railway.app/api/historique-transferts';
 
 export default function Transferts() {
 
@@ -43,6 +48,18 @@ export default function Transferts() {
 
   const [depotDestination, setDepotDestination] =
     useState('depot2');
+
+  // ✅ matricule connecté
+  // Remplace plus tard par AsyncStorage ou login
+  const matriculeConnecte = 'EMP001';
+
+  // ✅ employés autorisés
+  const employesAutorises = [
+    'ADMP001',
+    'EMP001',
+    'EMP002',
+    'EMP003',
+  ];
 
   const depots = [
     {
@@ -125,6 +142,7 @@ export default function Transferts() {
 
     try {
 
+      // ✅ produit obligatoire
       if (!selectedProduit) {
 
         return Alert.alert(
@@ -133,6 +151,7 @@ export default function Transferts() {
         );
       }
 
+      // ✅ quantité valide
       if (
         !quantite ||
         Number(quantite) <= 0
@@ -144,6 +163,7 @@ export default function Transferts() {
         );
       }
 
+      // ✅ dépôts différents
       if (
         depotSource === depotDestination
       ) {
@@ -154,6 +174,7 @@ export default function Transferts() {
         );
       }
 
+      // ✅ stock insuffisant
       if (
         Number(quantite) > stockDisponible
       ) {
@@ -164,7 +185,7 @@ export default function Transferts() {
         );
       }
 
-      /* ================= API ================= */
+      /* ================= API TRANSFERT ================= */
 
       await axios.post(
         API_TRANSFERT,
@@ -175,6 +196,38 @@ export default function Transferts() {
           quantite: Number(quantite),
         }
       );
+
+      /* ================= HISTORIQUE ================= */
+
+      if (
+        employesAutorises.includes(
+          matriculeConnecte
+        )
+      ) {
+
+        await axios.post(
+          API_HISTORIQUE,
+          {
+            matricule: matriculeConnecte,
+
+            produit_reference:
+              selectedProduit,
+
+            depot_source:
+              depotSource,
+
+            depot_destination:
+              depotDestination,
+
+            quantite:
+              Number(quantite),
+
+            date_transfert:
+              new Date(),
+          }
+        );
+
+      }
 
       Alert.alert(
         'Succès',
