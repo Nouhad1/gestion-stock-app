@@ -19,7 +19,7 @@ const API_URL =
   'https://gestion-stock-app-production.up.railway.app/api/produits';
 
 const API_TRANSFERT =
-  'https://gestion-stock-app-production.up.railway.app/api/transferts';
+'https://gestion-stock-app-production.up.railway.app/api/transferts';
 
 export default function Transferts() {
 
