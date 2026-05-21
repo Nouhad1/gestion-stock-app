@@ -17,9 +17,9 @@ router.post("/multiples", async (req, res) => {
     await connection.beginTransaction();
 
     for (const cmd of commandes) {
-      console.log("📥 CMD REÇU:", cmd);
+      // console.log("📥 CMD REÇU:", cmd);
 
-     /*  let {
+      let {
         client_id,
         produit_reference,
         quantite_commande,
@@ -28,7 +28,7 @@ router.post("/multiples", async (req, res) => {
         prix_unitaire,
         transport_id,
         paiement_id,
-      } = cmd; */
+      } = cmd; 
 
       // =========================
       // 🔒 sécurisation
