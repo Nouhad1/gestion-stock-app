@@ -1,4 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
 import {
   View,
   Text,
@@ -6,285 +11,693 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-  ActivityIndicator,
+ ActivityIndicator,
   FlatList,
 } from 'react-native';
 
 import axios from 'axios';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { LinearGradient } from 'expo-linear-gradient';
+
 import DropDownPicker from 'react-native-dropdown-picker';
 
 const API_URL =
   'https://gestion-stock-app-production.up.railway.app/api/produits';
 
 const API_TRANSFERT =
-'https://gestion-stock-app-production.up.railway.app/api/transferts';
+  'https://gestion-stock-app-production.up.railway.app/api/transferts';
 
 export default function Transferts() {
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [produits, setProduits] = useState([]);
-  const [selectedProduit, setSelectedProduit] = useState(null);
+  const [produits, setProduits] =
+    useState([]);
 
-  const [quantite, setQuantite] = useState('');
+  const [selectedProduit, setSelectedProduit] =
+    useState(null);
 
-  const [openProduit, setOpenProduit] = useState(false);
-  const [openSource, setOpenSource] = useState(false);
-  const [openDestination, setOpenDestination] = useState(false);
+  const [quantite, setQuantite] =
+    useState('');
 
-  const [depotSource, setDepotSource] = useState('depot1');
-  const [depotDestination, setDepotDestination] = useState('depot2');
+  const [openProduit, setOpenProduit] =
+    useState(false);
 
-  const [historique, setHistorique] = useState([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [openSource, setOpenSource] =
+    useState(false);
+
+  const [openDestination, setOpenDestination] =
+    useState(false);
+
+  const [depotSource, setDepotSource] =
+    useState('depot1');
+
+  const [depotDestination, setDepotDestination] =
+    useState('depot2');
+
+  const [historique, setHistorique] =
+    useState([]);
+
+  const [showHistory, setShowHistory] =
+    useState(false);
 
   const matriculeConnecte = 'EMP001';
 
-  const employesAutorises = [
-    'ADMP001',
-    'EMP001',
-    'EMP002',
-    'EMP003',
-  ];
-
   const depots = [
-    { label: 'Hay Mohammadi', value: 'depot1' },
-    { label: 'Had Soualem', value: 'depot2' },
+    {
+      label: 'Hay Mohammadi',
+      value: 'depot1',
+    },
+    {
+      label: 'Had Soualem',
+      value: 'depot2',
+    },
   ];
 
-  /* ================= PRODUITS ================= */
+  /* =========================
+     FETCH PRODUITS
+  ========================= */
 
   const fetchProduits = async () => {
-    try {
-      const res = await axios.get(API_URL);
 
-      const formatted = res.data.map((item) => ({
-        label: `${item.reference} - ${item.designation}`,
-        value: item.reference,
-        data: item,
-      }));
+    try {
+
+      const res =
+        await axios.get(API_URL);
+
+      const formatted =
+        res.data.map((item) => ({
+          label:
+            `${item.reference} - ${item.designation}`,
+          value: item.reference,
+          data: item,
+        }));
 
       setProduits(formatted);
 
     } catch (err) {
-      Alert.alert('Erreur', 'Chargement produits impossible');
+
+      console.log(err);
+
+      Alert.alert(
+        'Erreur',
+        'Impossible de charger les produits'
+      );
+
     } finally {
+
       setLoading(false);
     }
   };
 
-  /* ================= HISTORIQUE ================= */
+  /* =========================
+     FETCH HISTORIQUE
+  ========================= */
 
   const fetchHistorique = async () => {
+
     try {
-      const res = await axios.get(`${API_TRANSFERT}/historique`);
+
+      const res =
+        await axios.get(
+          `${API_TRANSFERT}/historique`
+        );
+
       setHistorique(res.data);
+
     } catch (err) {
+
       console.log(err);
     }
   };
 
   useEffect(() => {
+
     fetchProduits();
+
     fetchHistorique();
+
   }, []);
 
-  /* ================= PRODUIT ================= */
+  /* =========================
+     PRODUIT
+  ========================= */
 
   const produitData = useMemo(() => {
-    return produits.find(p => p.value === selectedProduit)?.data;
+
+    return produits.find(
+      (p) => p.value === selectedProduit
+    )?.data;
+
   }, [selectedProduit, produits]);
 
-  /* ================= STOCK ================= */
+  /* =========================
+     STOCK
+  ========================= */
 
   const stockDisponible = useMemo(() => {
+
     if (!produitData) return 0;
 
     return depotSource === 'depot1'
-      ? Number(produitData.quantite_stock || 0)
-      : Number(produitData.quantite_stock_2 || 0);
+      ? Number(
+          produitData.quantite_stock || 0
+        )
+      : Number(
+          produitData.quantite_stock_2 || 0
+        );
+
   }, [produitData, depotSource]);
 
-  /* ================= TRANSFERT ================= */
+  /* =========================
+     TRANSFERT
+  ========================= */
 
   const handleTransfer = async () => {
+
     try {
 
-      if (!selectedProduit)
-        return Alert.alert('Erreur', 'Sélectionnez un produit');
+      if (!selectedProduit) {
 
-      if (!quantite || Number(quantite) <= 0)
-        return Alert.alert('Erreur', 'Quantité invalide');
+        return Alert.alert(
+          'Erreur',
+          'Sélectionnez un produit'
+        );
+      }
 
-      if (depotSource === depotDestination)
-        return Alert.alert('Erreur', 'Dépôts identiques interdits');
+      if (
+        !quantite ||
+        Number(quantite) <= 0
+      ) {
 
-      if (Number(quantite) > stockDisponible)
-        return Alert.alert('Stock insuffisant', `Stock: ${stockDisponible}`);
+        return Alert.alert(
+          'Erreur',
+          'Entrez une quantité valide'
+        );
+      }
 
-      await axios.post(API_TRANSFERT, {
-        matricule: matriculeConnecte,
-        produit_reference: selectedProduit,
-        depot_source: depotSource,
-        depot_destination: depotDestination,
-        quantite: Number(quantite),
-      });
+      if (
+        depotSource === depotDestination
+      ) {
 
-      Alert.alert('Succès', 'Transfert effectué');
+        return Alert.alert(
+          'Erreur',
+          'Les dépôts doivent être différents'
+        );
+      }
+
+      if (
+        Number(quantite) > stockDisponible
+      ) {
+
+        return Alert.alert(
+          'Stock insuffisant',
+          `Stock disponible : ${stockDisponible}`
+        );
+      }
+
+      await axios.post(
+        API_TRANSFERT,
+        {
+          matricule:
+            matriculeConnecte,
+
+          produit_reference:
+            selectedProduit,
+
+          depot_source:
+            depotSource,
+
+          depot_destination:
+            depotDestination,
+
+          quantite:
+            Number(quantite),
+        }
+      );
+
+      Alert.alert(
+        'Succès',
+        'Transfert effectué'
+      );
 
       setQuantite('');
+
       setSelectedProduit(null);
 
       fetchProduits();
+
       fetchHistorique();
 
     } catch (err) {
+
       console.log(err);
-      Alert.alert('Erreur', 'Transfert échoué');
+
+      Alert.alert(
+        'Erreur',
+        'Erreur lors du transfert'
+      );
     }
   };
 
+  /* =========================
+     LOADING
+  ========================= */
+
   if (loading) {
+
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2563eb" />
+        <ActivityIndicator
+          size="large"
+          color="#2563eb"
+        />
       </View>
     );
   }
 
   return (
+
     <SafeAreaView style={styles.container}>
 
-      {/* HEADER */}
-      <LinearGradient colors={['#2563eb', '#1e40af']} style={styles.header}>
-        <Text style={styles.headerTitle}>🚚 Transfert de Stock</Text>
-      </LinearGradient>
+      <FlatList
+        data={
+          showHistory
+            ? historique
+            : []
+        }
 
-      <View style={styles.content}>
+        keyExtractor={(item) =>
+          item.id.toString()
+        }
 
-        {/* PRODUIT */}
-        <DropDownPicker
-          open={openProduit}
-          value={selectedProduit}
-          items={produits}
-          setOpen={setOpenProduit}
-          setValue={setSelectedProduit}
-          setItems={setProduits}
-          placeholder="Produit"
-        />
+        showsVerticalScrollIndicator={false}
 
-        {/* DEPOTS */}
-        <DropDownPicker
-          open={openSource}
-          value={depotSource}
-          items={depots}
-          setOpen={setOpenSource}
-          setValue={setDepotSource}
-          setItems={() => {}}
-          placeholder="Dépôt source"
-        />
+        ListHeaderComponent={
 
-        <DropDownPicker
-          open={openDestination}
-          value={depotDestination}
-          items={depots}
-          setOpen={setOpenDestination}
-          setValue={setDepotDestination}
-          setItems={() => {}}
-          placeholder="Dépôt destination"
-        />
+          <>
 
-        {/* STOCK */}
-        <Text style={styles.stock}>
-          Stock: {stockDisponible}
-        </Text>
+            {/* HEADER */}
+            <LinearGradient
+              colors={[
+                '#2563eb',
+                '#1e40af',
+              ]}
+              style={styles.header}
+            >
 
-        {/* QUANTITE */}
-        <TextInput
-          value={quantite}
-          onChangeText={setQuantite}
-          keyboardType="numeric"
-          placeholder="Quantité"
-          style={styles.input}
-        />
+              <Text style={styles.headerTitle}>
+                🚚 Transfert de Stock
+              </Text>
 
-        {/* BUTTON */}
-        <TouchableOpacity style={styles.button} onPress={handleTransfer}>
-          <Text style={styles.buttonText}>TRANSFÉRER</Text>
-        </TouchableOpacity>
+              <Text style={styles.headerSubtitle}>
+                Gestion des transferts entre dépôts
+              </Text>
 
-        {/* HISTORIQUE BUTTON */}
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: '#111' }]}
-          onPress={() => setShowHistory(!showHistory)}
-        >
-          <Text style={styles.buttonText}>
-            {showHistory ? 'Cacher historique' : 'Voir historique'}
-          </Text>
-        </TouchableOpacity>
+            </LinearGradient>
 
-        {/* HISTORIQUE */}
-        {showHistory && (
-          <FlatList
-            data={historique}
-            keyExtractor={(item) => item.id?.toString()}
-            renderItem={({ item }) => (
-              <View style={styles.historyItem}>
-                <Text>{item.matricule}</Text>
-                <Text>{item.produit_reference}</Text>
-                <Text>{item.quantite}</Text>
-                <Text>{item.depot_source} → {item.depot_destination}</Text>
+            <View style={styles.content}>
+
+              {/* PRODUIT */}
+              <View
+                style={[
+                  styles.section,
+                  { zIndex: 3000 },
+                ]}
+              >
+
+                <Text style={styles.label}>
+                  Produit
+                </Text>
+
+                <DropDownPicker
+                  open={openProduit}
+                  value={selectedProduit}
+                  items={produits}
+                  setOpen={setOpenProduit}
+                  setValue={setSelectedProduit}
+                  setItems={setProduits}
+                  searchable={true}
+                  placeholder="Sélectionner un produit"
+                  style={styles.dropdown}
+                  dropDownContainerStyle={
+                    styles.dropdownContainer
+                  }
+                />
+
               </View>
-            )}
-          />
-        )}
 
-      </View>
+              {/* DEPOT SOURCE */}
+              <View
+                style={[
+                  styles.section,
+                  { zIndex: 2000 },
+                ]}
+              >
+
+                <Text style={styles.label}>
+                  Dépôt source
+                </Text>
+
+                <DropDownPicker
+                  open={openSource}
+                  value={depotSource}
+                  items={depots}
+                  setOpen={setOpenSource}
+                  setValue={setDepotSource}
+                  setItems={() => {}}
+                  style={styles.dropdown}
+                  dropDownContainerStyle={
+                    styles.dropdownContainer
+                  }
+                />
+
+              </View>
+
+              {/* DEPOT DESTINATION */}
+              <View
+                style={[
+                  styles.section,
+                  { zIndex: 1000 },
+                ]}
+              >
+
+                <Text style={styles.label}>
+                  Dépôt destination
+                </Text>
+
+                <DropDownPicker
+                  open={openDestination}
+                  value={depotDestination}
+                  items={depots}
+                  setOpen={
+                    setOpenDestination
+                  }
+                  setValue={
+                    setDepotDestination
+                  }
+                  setItems={() => {}}
+                  style={styles.dropdown}
+                  dropDownContainerStyle={
+                    styles.dropdownContainer
+                  }
+                />
+
+              </View>
+
+              {/* STOCK */}
+              <View style={styles.stockBox}>
+
+                <Text style={styles.stockLabel}>
+                  Stock disponible
+                </Text>
+
+                <Text style={styles.stockValue}>
+                  {stockDisponible}
+                </Text>
+
+              </View>
+
+              {/* QUANTITE */}
+              <View style={styles.section}>
+
+                <Text style={styles.label}>
+                  Quantité
+                </Text>
+
+                <TextInput
+                  value={quantite}
+                  onChangeText={
+                    setQuantite
+                  }
+                  keyboardType="numeric"
+                  placeholder="0"
+                  placeholderTextColor="#999"
+                  style={styles.input}
+                />
+
+              </View>
+
+              {/* BUTTON */}
+              <TouchableOpacity
+                style={styles.button}
+                onPress={
+                  handleTransfer
+                }
+              >
+
+                <Text style={styles.buttonText}>
+                  TRANSFÉRER
+                </Text>
+
+              </TouchableOpacity>
+
+              {/* HISTORIQUE BUTTON */}
+              <TouchableOpacity
+                style={
+                  styles.historyButton
+                }
+                onPress={() =>
+                  setShowHistory(
+                    !showHistory
+                  )
+                }
+              >
+
+                <Text style={styles.buttonText}>
+                  {showHistory
+                    ? 'Masquer historique'
+                    : 'Afficher historique'}
+                </Text>
+
+              </TouchableOpacity>
+
+              {/* TITRE HISTORIQUE */}
+              {showHistory && (
+
+                <Text
+                  style={
+                    styles.historyTitle
+                  }
+                >
+                  Historique des transferts
+                </Text>
+              )}
+
+            </View>
+
+          </>
+        }
+
+        renderItem={({ item }) => (
+
+          <View style={styles.historyItem}>
+
+            <View style={styles.row}>
+              <Text style={styles.left}>
+                Produit
+              </Text>
+
+              <Text style={styles.right}>
+                {
+                  item.produit_reference
+                }
+              </Text>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={styles.left}>
+                Quantité
+              </Text>
+
+              <Text style={styles.right}>
+                {item.quantite}
+              </Text>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={styles.left}>
+                Dépôts
+              </Text>
+
+              <Text style={styles.right}>
+                {item.depot_source} →{' '}
+                {
+                  item.depot_destination
+                }
+              </Text>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={styles.left}>
+                Date
+              </Text>
+
+              <Text style={styles.right}>
+                {new Date(
+                  item.date_transfert
+                ).toLocaleString()}
+              </Text>
+            </View>
+
+          </View>
+        )}
+      />
+
     </SafeAreaView>
   );
 }
 
-/* ================= STYLE ================= */
+/* =========================
+   STYLES
+========================= */
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f7fb' },
 
-  header: { padding: 18 },
-  headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  container: {
+    flex: 1,
+    backgroundColor: '#f4f7fb',
+  },
 
-  content: { padding: 15 },
+  header: {
+    paddingTop: 18,
+    paddingBottom: 25,
+    paddingHorizontal: 20,
+  },
+
+  headerTitle: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+
+  headerSubtitle: {
+    color: '#dbeafe',
+    marginTop: 5,
+    fontSize: 14,
+  },
+
+  content: {
+    padding: 15,
+    paddingBottom: 20,
+  },
+
+  section: {
+    marginBottom: 18,
+  },
+
+  label: {
+    marginBottom: 8,
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+
+  dropdown: {
+    borderColor: '#d1d5db',
+    minHeight: 52,
+    borderRadius: 10,
+  },
+
+  dropdownContainer: {
+    borderColor: '#d1d5db',
+    borderRadius: 10,
+  },
 
   input: {
     backgroundColor: '#fff',
-    padding: 12,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
     borderRadius: 10,
-    marginTop: 10,
+    padding: 14,
+    fontSize: 16,
+    color: '#111',
+  },
+
+  stockBox: {
+    backgroundColor: '#dbeafe',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+
+  stockLabel: {
+    color: '#1e3a8a',
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+
+  stockValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#2563eb',
   },
 
   button: {
     backgroundColor: '#2563eb',
-    padding: 14,
-    marginTop: 15,
+    paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',
+    marginTop: 5,
   },
 
-  buttonText: { color: '#fff', fontWeight: 'bold' },
+  historyButton: {
+    backgroundColor: '#111827',
+    paddingVertical: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 15,
+  },
 
-  stock: {
-    marginTop: 10,
-    fontSize: 16,
+  buttonText: {
+    color: '#fff',
+    fontSize: 15,
     fontWeight: 'bold',
+  },
+
+  historyTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginTop: 25,
+    marginBottom: 10,
   },
 
   historyItem: {
     backgroundColor: '#fff',
-    padding: 10,
-    marginTop: 10,
-    borderRadius: 8,
+    padding: 15,
+    marginHorizontal: 15,
+    marginBottom: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
 
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+
+  left: {
+    fontWeight: 'bold',
+    color: '#374151',
+  },
+
+  right: {
+    color: '#111827',
+    maxWidth: '60%',
+    textAlign: 'right',
+  },
+
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
 });
