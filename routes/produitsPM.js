@@ -25,7 +25,7 @@ router.get('/', (req, res) => {
     FROM produits p
     LEFT JOIN achats a ON a.produit_reference = p.reference
     GROUP BY p.reference, p.designation, p.prix_unitaire, p.quantite_stock, p.quantite_stock_2, p.longueur_par_rouleau
-    ORDER BY p.reference
+    ORDER BY p.Designation
   `;
 
   db.query(sql, (err, rows) => {

@@ -83,26 +83,36 @@ export default function ProductTable() {
     fetchProduits();
   };
 
-  const renderAvailability = (stock, designation) => {
-    const threshold = getStockThreshold(designation);
 
-    let label = 'Dispo';
-    let style = styles.inStock;
+  const getStockDisplay = (item, selectedDepot) => {
+  const designation = (item.designation || '').toUpperCase();
 
-    if (stock <= 0) {
-      label = 'Rupture';
-      style = styles.outOfStock;
-    } else if (stock < threshold) {
-      label = 'Faible';
-      style = styles.lowStock;
-    }
+  const isLaniere =
+    designation.includes('LANIERE') ||
+    designation.includes('ROUL');
 
-    return (
-      <View style={[styles.availability, style]}>
-        <Text style={styles.availabilityText}>{label}</Text>
-      </View>
-    );
-  };
+  if (!isLaniere) {
+    return selectedDepot === 'depot1'
+      ? Number(item.quantite_stock || 0)
+      : Number(item.quantite_stock_2 || 0);
+  }
+
+  const stock =
+    selectedDepot === 'depot1'
+      ? Number(item.quantite_stock || 0)
+      : Number(item.quantite_stock_2 || 0);
+
+  const longueur = Number(item.longueur_par_rouleau || 0);
+
+  const rouleaux = Math.floor(stock);
+
+  const metres =
+    longueur > 0
+      ? ((stock - rouleaux) * longueur)
+      : 0;
+
+  return `${rouleaux} Roul et ${metres.toFixed(1)} m`;
+};
 
   // ✅ TOTAL GÉNÉRAL
 const totalGeneral = useMemo(() => {
@@ -131,9 +141,14 @@ const renderItem = useCallback(({ item, index }) => {
   const depot2 = Number(item.quantite_stock_2 || 0);
 
   const stockSelected =
-    selectedDepot === 'depot1'
-      ? depot1
-      : depot2;
+  selectedDepot === 'depot1'
+    ? depot1
+    : depot2;
+
+const stockAffichage = getStockDisplay(
+  item,
+  selectedDepot
+);
 
   const global = depot1 + depot2;
 
@@ -180,8 +195,8 @@ const renderItem = useCallback(({ item, index }) => {
         {item.designation}
       </Text>
 
-      <Text style={[styles.cell, { width: 150 }]}>
-        {stockSelected}
+      <Text style={[styles.cell, { width: 220 }]}>
+        {stockAffichage}
       </Text>
 
       <Text style={[styles.cell, { width: 80 }]}>
@@ -267,7 +282,7 @@ const renderItem = useCallback(({ item, index }) => {
           <View style={[styles.row, styles.headerRow]}>
             <Text style={[styles.headerCell, { width: 120 }]}>Référence</Text>
             <Text style={[styles.headerCell, { width: 400 }]}>Désignation</Text>
-            <Text style={[styles.headerCell, { width: 150 }]}>Stock</Text>
+            <Text style={[styles.headerCell, { width: 220 }]}>Stock</Text>
             <Text style={[styles.headerCell, { width: 80 }]}>Global</Text>
             <Text style={[styles.headerCell, { width: 120 }]}>Prix U</Text>
             <Text style={[styles.headerCell, { width: 120 }]}>Prix Total</Text>

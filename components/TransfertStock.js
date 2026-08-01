@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
- ActivityIndicator,
+  ActivityIndicator,
   FlatList,
 } from 'react-native';
 
@@ -66,6 +66,18 @@ export default function Transferts() {
 
   const matriculeConnecte = 'EMP001';
 
+  const employesAutorises = [
+    'ADMP001',
+    'EMP001',
+    'EMP002',
+    'EMP003',
+  ];
+
+  const peutVoirHistorique =
+    employesAutorises.includes(
+      matriculeConnecte
+    );
+
   const depots = [
     {
       label: 'Hay Mohammadi',
@@ -77,9 +89,7 @@ export default function Transferts() {
     },
   ];
 
-  /* =========================
-     FETCH PRODUITS
-  ========================= */
+  /* ================= FETCH PRODUITS ================= */
 
   const fetchProduits = async () => {
 
@@ -113,9 +123,7 @@ export default function Transferts() {
     }
   };
 
-  /* =========================
-     FETCH HISTORIQUE
-  ========================= */
+  /* ================= FETCH HISTORIQUE ================= */
 
   const fetchHistorique = async () => {
 
@@ -138,13 +146,13 @@ export default function Transferts() {
 
     fetchProduits();
 
-    fetchHistorique();
+    if (peutVoirHistorique) {
+      fetchHistorique();
+    }
 
   }, []);
 
-  /* =========================
-     PRODUIT
-  ========================= */
+  /* ================= PRODUIT ================= */
 
   const produitData = useMemo(() => {
 
@@ -154,9 +162,7 @@ export default function Transferts() {
 
   }, [selectedProduit, produits]);
 
-  /* =========================
-     STOCK
-  ========================= */
+  /* ================= STOCK ================= */
 
   const stockDisponible = useMemo(() => {
 
@@ -172,9 +178,7 @@ export default function Transferts() {
 
   }, [produitData, depotSource]);
 
-  /* =========================
-     TRANSFERT
-  ========================= */
+  /* ================= TRANSFERT ================= */
 
   const handleTransfer = async () => {
 
@@ -250,11 +254,13 @@ export default function Transferts() {
 
       fetchProduits();
 
-      fetchHistorique();
+      if (peutVoirHistorique) {
+        fetchHistorique();
+      }
 
     } catch (err) {
 
-      console.log(err);
+      console.log(err.response?.data || err);
 
       Alert.alert(
         'Erreur',
@@ -263,9 +269,7 @@ export default function Transferts() {
     }
   };
 
-  /* =========================
-     LOADING
-  ========================= */
+  /* ================= LOADING ================= */
 
   if (loading) {
 
@@ -284,8 +288,10 @@ export default function Transferts() {
     <SafeAreaView style={styles.container}>
 
       <FlatList
+
         data={
-          showHistory
+          showHistory &&
+          peutVoirHistorique
             ? historique
             : []
         }
@@ -300,7 +306,6 @@ export default function Transferts() {
 
           <>
 
-            {/* HEADER */}
             <LinearGradient
               colors={[
                 '#2563eb',
@@ -313,15 +318,12 @@ export default function Transferts() {
                 🚚 Transfert de Stock
               </Text>
 
-              <Text style={styles.headerSubtitle}>
-                Gestion des transferts entre dépôts
-              </Text>
-
             </LinearGradient>
 
             <View style={styles.content}>
 
               {/* PRODUIT */}
+
               <View
                 style={[
                   styles.section,
@@ -338,11 +340,21 @@ export default function Transferts() {
                   value={selectedProduit}
                   items={produits}
                   setOpen={setOpenProduit}
-                  setValue={setSelectedProduit}
+
+                  setValue={(callback) =>
+                    setSelectedProduit(
+                      callback(selectedProduit)
+                    )
+                  }
+
                   setItems={setProduits}
+
                   searchable={true}
+
                   placeholder="Sélectionner un produit"
+
                   style={styles.dropdown}
+
                   dropDownContainerStyle={
                     styles.dropdownContainer
                   }
@@ -350,7 +362,8 @@ export default function Transferts() {
 
               </View>
 
-              {/* DEPOT SOURCE */}
+              {/* SOURCE */}
+
               <View
                 style={[
                   styles.section,
@@ -367,9 +380,17 @@ export default function Transferts() {
                   value={depotSource}
                   items={depots}
                   setOpen={setOpenSource}
-                  setValue={setDepotSource}
+
+                  setValue={(callback) =>
+                    setDepotSource(
+                      callback(depotSource)
+                    )
+                  }
+
                   setItems={() => {}}
+
                   style={styles.dropdown}
+
                   dropDownContainerStyle={
                     styles.dropdownContainer
                   }
@@ -377,7 +398,8 @@ export default function Transferts() {
 
               </View>
 
-              {/* DEPOT DESTINATION */}
+              {/* DESTINATION */}
+
               <View
                 style={[
                   styles.section,
@@ -396,11 +418,19 @@ export default function Transferts() {
                   setOpen={
                     setOpenDestination
                   }
-                  setValue={
-                    setDepotDestination
+
+                  setValue={(callback) =>
+                    setDepotDestination(
+                      callback(
+                        depotDestination
+                      )
+                    )
                   }
+
                   setItems={() => {}}
+
                   style={styles.dropdown}
+
                   dropDownContainerStyle={
                     styles.dropdownContainer
                   }
@@ -409,6 +439,7 @@ export default function Transferts() {
               </View>
 
               {/* STOCK */}
+
               <View style={styles.stockBox}>
 
                 <Text style={styles.stockLabel}>
@@ -422,6 +453,7 @@ export default function Transferts() {
               </View>
 
               {/* QUANTITE */}
+
               <View style={styles.section}>
 
                 <Text style={styles.label}>
@@ -435,13 +467,13 @@ export default function Transferts() {
                   }
                   keyboardType="numeric"
                   placeholder="0"
-                  placeholderTextColor="#999"
                   style={styles.input}
                 />
 
               </View>
 
               {/* BUTTON */}
+
               <TouchableOpacity
                 style={styles.button}
                 onPress={
@@ -456,35 +488,28 @@ export default function Transferts() {
               </TouchableOpacity>
 
               {/* HISTORIQUE BUTTON */}
-              <TouchableOpacity
-                style={
-                  styles.historyButton
-                }
-                onPress={() =>
-                  setShowHistory(
-                    !showHistory
-                  )
-                }
-              >
 
-                <Text style={styles.buttonText}>
-                  {showHistory
-                    ? 'Masquer historique'
-                    : 'Afficher historique'}
-                </Text>
+              {peutVoirHistorique && (
 
-              </TouchableOpacity>
-
-              {/* TITRE HISTORIQUE */}
-              {showHistory && (
-
-                <Text
+                <TouchableOpacity
                   style={
-                    styles.historyTitle
+                    styles.historyButton
+                  }
+                  onPress={() =>
+                    setShowHistory(
+                      !showHistory
+                    )
                   }
                 >
-                  Historique des transferts
-                </Text>
+
+                  <Text style={styles.buttonText}>
+                    {showHistory
+                      ? 'Masquer historique'
+                      : 'Afficher historique'}
+                  </Text>
+
+                </TouchableOpacity>
+
               )}
 
             </View>
@@ -496,52 +521,29 @@ export default function Transferts() {
 
           <View style={styles.historyItem}>
 
-            <View style={styles.row}>
-              <Text style={styles.left}>
-                Produit
-              </Text>
+            <Text>
+              Produit :
+              {' '}
+              {item.produit_reference}
+            </Text>
 
-              <Text style={styles.right}>
-                {
-                  item.produit_reference
-                }
-              </Text>
-            </View>
+            <Text>
+              Quantité :
+              {' '}
+              {item.quantite}
+            </Text>
 
-            <View style={styles.row}>
-              <Text style={styles.left}>
-                Quantité
-              </Text>
+            <Text>
+              {item.depot_source}
+              {' → '}
+              {item.depot_destination}
+            </Text>
 
-              <Text style={styles.right}>
-                {item.quantite}
-              </Text>
-            </View>
-
-            <View style={styles.row}>
-              <Text style={styles.left}>
-                Dépôts
-              </Text>
-
-              <Text style={styles.right}>
-                {item.depot_source} →{' '}
-                {
-                  item.depot_destination
-                }
-              </Text>
-            </View>
-
-            <View style={styles.row}>
-              <Text style={styles.left}>
-                Date
-              </Text>
-
-              <Text style={styles.right}>
-                {new Date(
-                  item.date_transfert
-                ).toLocaleString()}
-              </Text>
-            </View>
+            <Text>
+              {new Date(
+                item.date_transfert
+              ).toLocaleString()}
+            </Text>
 
           </View>
         )}
@@ -551,10 +553,6 @@ export default function Transferts() {
   );
 }
 
-/* =========================
-   STYLES
-========================= */
-
 const styles = StyleSheet.create({
 
   container: {
@@ -563,9 +561,7 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    paddingTop: 18,
-    paddingBottom: 25,
-    paddingHorizontal: 20,
+    padding: 20,
   },
 
   headerTitle: {
@@ -574,15 +570,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 
-  headerSubtitle: {
-    color: '#dbeafe',
-    marginTop: 5,
-    fontSize: 14,
-  },
-
   content: {
     padding: 15,
-    paddingBottom: 20,
   },
 
   section: {
@@ -591,48 +580,40 @@ const styles = StyleSheet.create({
 
   label: {
     marginBottom: 8,
-    fontSize: 15,
     fontWeight: 'bold',
-    color: '#111827',
   },
 
   dropdown: {
     borderColor: '#d1d5db',
     minHeight: 52,
-    borderRadius: 10,
   },
 
   dropdownContainer: {
     borderColor: '#d1d5db',
-    borderRadius: 10,
   },
 
   input: {
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: '#d1d5db',
-    borderRadius: 10,
     padding: 14,
-    fontSize: 16,
-    color: '#111',
+    borderRadius: 10,
   },
 
   stockBox: {
     backgroundColor: '#dbeafe',
     padding: 20,
-    borderRadius: 10,
     alignItems: 'center',
     marginBottom: 20,
+    borderRadius: 10,
   },
 
   stockLabel: {
-    color: '#1e3a8a',
     fontWeight: 'bold',
-    marginBottom: 5,
   },
 
   stockValue: {
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: 'bold',
     color: '#2563eb',
   },
@@ -655,16 +636,7 @@ const styles = StyleSheet.create({
 
   buttonText: {
     color: '#fff',
-    fontSize: 15,
     fontWeight: 'bold',
-  },
-
-  historyTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginTop: 25,
-    marginBottom: 10,
   },
 
   historyItem: {
@@ -673,25 +645,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 15,
     marginBottom: 10,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-
-  left: {
-    fontWeight: 'bold',
-    color: '#374151',
-  },
-
-  right: {
-    color: '#111827',
-    maxWidth: '60%',
-    textAlign: 'right',
   },
 
   center: {
