@@ -15,17 +15,31 @@ function formatStockDecimal(stockFloat, longueurParRouleau) {
 router.get('/', (req, res) => {
   const sql = `
     SELECT 
-      p.reference, 
-      p.designation, 
-      p.prix_unitaire, 
-      COALESCE(AVG(a.prix_achat), 0) AS prix_moyen_achat,
-      COALESCE(p.quantite_stock, 0) AS quantite_stock,
-      COALESCE(p.quantite_stock_2, 0) AS quantite_stock_2,
-      COALESCE(p.longueur_par_rouleau, 0) AS longueur_par_rouleau
-    FROM produits p
-    LEFT JOIN achats a ON a.produit_reference = p.reference
-    GROUP BY p.reference, p.designation, p.prix_unitaire, p.quantite_stock, p.quantite_stock_2, p.longueur_par_rouleau
-    ORDER BY p.Designation
+    p.reference,
+    p.designation,
+    p.prix_unitaire,
+    COALESCE(AVG(a.prix_achat), 0) AS prix_moyen_achat,
+    COALESCE(p.quantite_stock, 0) AS quantite_stock,
+    COALESCE(p.quantite_stock_2, 0) AS quantite_stock_2,
+    COALESCE(p.longueur_par_rouleau, 0) AS longueur_par_rouleau,
+    c.nom AS categorie
+FROM produits p
+LEFT JOIN achats a
+    ON a.produit_reference = p.reference
+LEFT JOIN categories c
+    ON c.id = p.categorie_id
+GROUP BY
+    p.reference,
+    p.designation,
+    p.prix_unitaire,
+    p.quantite_stock,
+    p.quantite_stock_2,
+    p.longueur_par_rouleau,
+    c.nom,
+    c.ordre
+ORDER BY
+    c.ordre ASC,
+    p.designation ASC;
   `;
 
   db.query(sql, (err, rows) => {
