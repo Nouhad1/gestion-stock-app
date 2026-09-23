@@ -68,6 +68,12 @@ const HomeScreen = () => {
     215,
   ];
 
+  // ==========================================================
+  // NOUVEAU : chiffre annuel des clients 209 et 221
+  // ==========================================================
+  const [chiffreAnnuelClients, setChiffreAnnuelClients] =
+    useState(0);
+
   const [cardsData, setCardsData] = useState({
     totalEntrees: 0,
     valeurAchats: 0,
@@ -87,28 +93,71 @@ const HomeScreen = () => {
   const API_BASE =
     'https://gestion-stock-app-production.up.railway.app/api/dashboard';
 
-  /* ================= DASHBOARD ================= */
+  // ==========================================================
+  // CHIFFRE ANNUEL CLIENTS 209 ET 221
+  // ==========================================================
+
+  const fetchChiffreAnnuelClients = async (year) => {
+
+    try {
+
+      const response = await axios.get(
+        'https://gestion-stock-app-production.up.railway.app/api/commandes/chiffre-annuel',
+        {
+          params: {
+            year: year,
+            clients: '209,221',
+          },
+        }
+      );
+
+      const chiffre =
+        Number(response.data.chiffre_annuel) || 0;
+
+      setChiffreAnnuelClients(chiffre);
+
+    } catch (err) {
+
+      console.log(
+        'Erreur chiffre annuel clients 209/221:',
+        err
+      );
+
+      setChiffreAnnuelClients(0);
+    }
+  };
+
+
+  // ==========================================================
+  // DASHBOARD
+  // ==========================================================
 
   const fetchDashboard = async (year) => {
 
     try {
 
-      const [resCards, resChart, resTable] =
-        await Promise.all([
-          axios.get(
-            `${API_BASE}/cards?year=${year}`
-          ),
+      const [
+        resCards,
+        resChart,
+        resTable
+      ] = await Promise.all([
 
-          axios.get(
-            `${API_BASE}/chart?year=${year}`
-          ),
+        axios.get(
+          `${API_BASE}/cards?year=${year}`
+        ),
 
-          axios.get(
-            `${API_BASE}/products?year=${year}`
-          ),
-        ]);
+        axios.get(
+          `${API_BASE}/chart?year=${year}`
+        ),
+
+        axios.get(
+          `${API_BASE}/products?year=${year}`
+        ),
+
+      ]);
 
       setCardsData({
+
         totalEntrees:
           Number(resCards.data.totalEntrees) || 0,
 
@@ -120,7 +169,16 @@ const HomeScreen = () => {
 
         valeurSorties:
           Number(resCards.data.valeurSorties) || 0,
+
       });
+
+
+      // ======================================================
+      // NOUVEAU : récupérer le chiffre annuel
+      // ======================================================
+
+      await fetchChiffreAnnuelClients(year);
+
 
       const dataMap = monthLabels.map(label => {
 
@@ -131,18 +189,29 @@ const HomeScreen = () => {
         const ca = parseFloat(found?.ca);
 
         return isNaN(ca) ? 0 : ca;
+
       });
+
 
       setChartData({
         labels: monthLabels,
-        datasets: [{ data: dataMap }],
+        datasets: [
+          {
+            data: dataMap
+          }
+        ],
       });
 
-      const safeTable = resTable.data.map(item => ({
-        ...item,
-        totalQuantity:
-          parseFloat(item.totalQuantity) || 0,
-      }));
+
+      const safeTable =
+        resTable.data.map(item => ({
+
+          ...item,
+
+          totalQuantity:
+            parseFloat(item.totalQuantity) || 0,
+
+        }));
 
       setTableData(safeTable);
 
@@ -152,10 +221,14 @@ const HomeScreen = () => {
         'Erreur dashboard:',
         err
       );
+
     }
   };
 
-  /* ================= NOTIFICATIONS ================= */
+
+  // ==========================================================
+  // NOTIFICATIONS
+  // ==========================================================
 
   const fetchNotifications = async () => {
 
@@ -165,49 +238,47 @@ const HomeScreen = () => {
         'https://gestion-stock-app-production.up.railway.app/api/commandes'
       );
 
-      const notifications = resNotif.data.filter(
-        cmd => {
+      const notifications =
+        resNotif.data.filter(
+          cmd => {
 
-          // pas de date
-          if (!cmd.Date_echeance) {
-            return false;
+            if (!cmd.Date_echeance) {
+              return false;
+            }
+
+            if (
+              !clientsAvecTransport.includes(
+                Number(cmd.client_id)
+              )
+            ) {
+              return false;
+            }
+
+            if (
+              Number(cmd.paiement_id) === 1
+            ) {
+              return false;
+            }
+
+            const dateCmd =
+              new Date(cmd.Date_echeance);
+
+            const aujourd =
+              new Date();
+
+            const memeJour =
+              dateCmd.getDate() ===
+                aujourd.getDate() &&
+
+              dateCmd.getMonth() ===
+                aujourd.getMonth() &&
+
+              dateCmd.getFullYear() ===
+                aujourd.getFullYear();
+
+            return memeJour;
           }
-
-          // seulement ces clients
-          if (
-            !clientsAvecTransport.includes(
-              Number(cmd.client_id)
-            )
-          ) {
-            return false;
-          }
-
-          // seulement NON PAYÉ
-          if (
-            Number(cmd.paiement_id) === 1
-          ) {
-            return false;
-          }
-
-          const dateCmd = new Date(
-            cmd.Date_echeance
-          );
-
-          const aujourd = new Date();
-
-          const memeJour =
-            dateCmd.getDate() ===
-              aujourd.getDate() &&
-
-            dateCmd.getMonth() ===
-              aujourd.getMonth() &&
-
-            dateCmd.getFullYear() ===
-              aujourd.getFullYear();
-
-          return memeJour;
-        }
-      );
+        );
 
       setHasNotification(
         notifications.length > 0
@@ -219,10 +290,14 @@ const HomeScreen = () => {
         'Erreur notifications:',
         err
       );
+
     }
   };
 
-  /* ================= INIT ================= */
+
+  // ==========================================================
+  // INITIALISATION
+  // ==========================================================
 
   useEffect(() => {
 
@@ -241,11 +316,14 @@ const HomeScreen = () => {
           const defaultYear =
             res.data[0];
 
-          setSelectedYear(defaultYear);
+          setSelectedYear(
+            defaultYear
+          );
 
           await fetchDashboard(
             defaultYear
           );
+
         }
 
         await fetchNotifications();
@@ -261,17 +339,23 @@ const HomeScreen = () => {
 
         setLoading(false);
       }
+
     };
 
     initData();
 
   }, []);
 
-  /* ================= REFRESH ================= */
+
+  // ==========================================================
+  // REFRESH
+  // ==========================================================
 
   const onRefresh = async () => {
 
-    if (!selectedYear) return;
+    if (!selectedYear) {
+      return;
+    }
 
     setRefreshing(true);
 
@@ -293,32 +377,47 @@ const HomeScreen = () => {
     }
   };
 
-  /* ================= LOADING ================= */
+
+  // ==========================================================
+  // LOADING
+  // ==========================================================
 
   if (loading) {
 
     return (
+
       <View style={styles.loader}>
+
         <ActivityIndicator
           size="large"
           color="#007bff"
         />
+
       </View>
+
     );
   }
 
-  /* ================= HEADER ================= */
+
+  // ==========================================================
+  // HEADER
+  // ==========================================================
 
   const renderHeader = () => (
 
     <View>
 
       <LinearGradient
-        colors={['#2563eb', '#1e40af']}
+        colors={[
+          '#2563eb',
+          '#1e40af'
+        ]}
         style={styles.header}
       >
 
-        <View style={styles.headerContent}>
+        <View
+          style={styles.headerContent}
+        >
 
           <View
             style={{
@@ -332,16 +431,22 @@ const HomeScreen = () => {
               name="cube"
               size={28}
               color="#fff"
-              style={{ marginRight: 10 }}
+              style={{
+                marginRight: 10
+              }}
             />
 
             <View>
 
-              <Text style={styles.headerTitle}>
+              <Text
+                style={styles.headerTitle}
+              >
                 Bluestrek Dashboard
               </Text>
 
-              <Text style={styles.headerSubtitle}>
+              <Text
+                style={styles.headerSubtitle}
+              >
                 Suivi des ventes et commandes
               </Text>
 
@@ -349,7 +454,7 @@ const HomeScreen = () => {
 
           </View>
 
-          {/* NOTIFICATION */}
+
           <TouchableOpacity
             onPress={() =>
               navigation.navigate(
@@ -392,59 +497,105 @@ const HomeScreen = () => {
 
       </LinearGradient>
 
-      {/* PICKER YEAR */}
-      <View style={{ margin: 10 }}>
+
+      {/* PICKER ANNÉE */}
+
+      <View
+        style={{
+          margin: 10
+        }}
+      >
 
         <Picker
-          selectedValue={selectedYear}
+          selectedValue={
+            selectedYear
+          }
+
           onValueChange={(value) => {
 
             setSelectedYear(value);
 
             fetchDashboard(value);
+
           }}
+
           style={{
             backgroundColor: '#fff',
             color: '#000',
           }}
+
           dropdownIconColor="#000"
         >
 
-          {yearList.map((year) => (
+          {yearList.map(
+            (year) => (
 
-            <Picker.Item
-              key={year}
-              label={year.toString()}
-              value={year}
-              color="#000"
-            />
+              <Picker.Item
+                key={year}
+                label={year.toString()}
+                value={year}
+                color="#000"
+              />
 
-          ))}
+            )
+          )}
 
         </Picker>
 
       </View>
 
-      {/* CARDS */}
-      <View style={styles.cardRow}>
 
-        <View style={styles.card}>
+      {/* ====================================================
+          CARTE 1 : CHIFFRE ANNUEL
+          ==================================================== */}
 
-          <Text>Total des entrées</Text>
+      <View
+        style={styles.cardRow}
+      >
+
+        <View
+          style={styles.card}
+        >
+
+          <Text>
+            Chiffre annuel
+          </Text>
 
           <Ionicons
-            name="arrow-down-circle-outline"
+            name="cash-outline"
             size={28}
             color="#007bff"
           />
 
-          <Text style={styles.cardValue}>
-            {cardsData.totalEntrees}
+          <Text
+            style={styles.cardValue}
+          >
+
+            {chiffreAnnuelClients.toLocaleString(
+              'fr-FR'
+            )}{' '}
+            DH
+
+          </Text>
+
+          <Text
+            style={{
+              fontSize: 11,
+              color: '#666',
+              marginTop: 4,
+            }}
+          >
+            Clients 209 et 221
           </Text>
 
         </View>
 
-        <View style={styles.card}>
+
+        {/* VALEUR DES ENTRÉES */}
+
+        <View
+          style={styles.card}
+        >
 
           <Text>
             Valeur des entrées
@@ -456,11 +607,14 @@ const HomeScreen = () => {
             color="#28a745"
           />
 
-          <Text style={styles.cardValue}>
+          <Text
+            style={styles.cardValue}
+          >
 
             {cardsData.valeurAchats.toLocaleString(
               'fr-FR'
-            )} DH
+            )}{' '}
+            DH
 
           </Text>
 
@@ -468,25 +622,58 @@ const HomeScreen = () => {
 
       </View>
 
-      <View style={styles.cardRow}>
 
-        <View style={styles.card}>
+      {/* ====================================================
+          CARTE 2 : CHIFFRE ANNUEL
+          ==================================================== */}
 
-          <Text>Total des sorties</Text>
+      <View
+        style={styles.cardRow}
+      >
+
+        <View
+          style={styles.card}
+        >
+
+          <Text>
+            Chiffre annuel
+          </Text>
 
           <Ionicons
-            name="arrow-up-circle-outline"
+            name="cash-outline"
             size={28}
             color="#dc3545"
           />
 
-          <Text style={styles.cardValue}>
-            {cardsData.totalSorties}
+          <Text
+            style={styles.cardValue}
+          >
+
+            {chiffreAnnuelClients.toLocaleString(
+              'fr-FR'
+            )}{' '}
+            DH
+
+          </Text>
+
+          <Text
+            style={{
+              fontSize: 11,
+              color: '#666',
+              marginTop: 4,
+            }}
+          >
+            Clients 209 et 221
           </Text>
 
         </View>
 
-        <View style={styles.card}>
+
+        {/* VALEUR DES SORTIES */}
+
+        <View
+          style={styles.card}
+        >
 
           <Text>
             Valeur des sorties
@@ -498,11 +685,14 @@ const HomeScreen = () => {
             color="#ffc107"
           />
 
-          <Text style={styles.cardValue}>
+          <Text
+            style={styles.cardValue}
+          >
 
             {cardsData.valeurSorties.toLocaleString(
               'fr-FR'
-            )} DH
+            )}{' '}
+            DH
 
           </Text>
 
@@ -510,18 +700,32 @@ const HomeScreen = () => {
 
       </View>
 
-      {/* CHART */}
-      <Text style={styles.sectionTitle}>
+
+      {/* ====================================================
+          GRAPHIQUE
+          ==================================================== */}
+
+      <Text
+        style={styles.sectionTitle}
+      >
         📊 Chiffre d'affaires mensuel
       </Text>
+
 
       <View>
 
         <LineChart
+
           data={chartData}
-          width={screenWidth - 20}
+
+          width={
+            screenWidth - 20
+          }
+
           height={250}
+
           chartConfig={{
+
             backgroundGradientFrom:
               '#fff',
 
@@ -530,13 +734,20 @@ const HomeScreen = () => {
 
             decimalPlaces: 0,
 
-            color: () => '#2563eb',
+            color: () =>
+              '#2563eb',
 
-            labelColor: () => '#000',
+            labelColor: () =>
+              '#000',
+
           }}
+
           bezier
+
           fromZero
+
           withDots
+
           onDataPointClick={({
             index,
             value,
@@ -546,42 +757,62 @@ const HomeScreen = () => {
               screenWidth - 20;
 
             const x =
-              (chartWidth /
-                chartData.labels.length) *
-              index;
+              (
+                chartWidth /
+                chartData.labels.length
+              ) * index;
 
-            const max = Math.max(
-              ...chartData.datasets[0].data,
-              1
-            );
+            const max =
+              Math.max(
+                ...chartData
+                  .datasets[0]
+                  .data,
+                1
+              );
 
             const y =
               200 -
-              (value / max) * 150;
+              (
+                value / max
+              ) * 150;
 
             setSelectedPoint({
               value,
               x,
               y,
             });
+
           }}
+
           style={{
-            borderRadius: 12,
+            borderRadius: 12
           }}
+
         />
+
 
         {selectedPoint && (
 
           <View
             style={{
               position: 'absolute',
-              left: selectedPoint.x,
-              top: selectedPoint.y,
+              left:
+                selectedPoint.x,
+              top:
+                selectedPoint.y,
+
               transform: [
-                { translateX: -20 },
-                { translateY: -30 },
+                {
+                  translateX: -20
+                },
+                {
+                  translateY: -30
+                },
               ],
-              backgroundColor: '#000',
+
+              backgroundColor:
+                '#000',
+
               paddingHorizontal: 6,
               paddingVertical: 2,
               borderRadius: 6,
@@ -603,17 +834,28 @@ const HomeScreen = () => {
 
       </View>
 
-      {/* TABLE */}
-      <Text style={styles.sectionTitle}>
+
+      {/* ====================================================
+          TABLE
+          ==================================================== */}
+
+      <Text
+        style={styles.sectionTitle}
+      >
         📦 Produits commandés
       </Text>
 
-      <View style={styles.tableHeader}>
+
+      <View
+        style={styles.tableHeader}
+      >
 
         <Text
           style={[
             styles.tableCellHeader,
-            { flex: 2 },
+            {
+              flex: 2
+            },
           ]}
         >
           Désignation
@@ -622,7 +864,9 @@ const HomeScreen = () => {
         <Text
           style={[
             styles.tableCellHeader,
-            { flex: -2 },
+            {
+              flex: -2
+            },
           ]}
         >
           Qté Commandée
@@ -632,6 +876,11 @@ const HomeScreen = () => {
 
     </View>
   );
+
+
+  // ==========================================================
+  // RETURN
+  // ==========================================================
 
   return (
 
@@ -644,33 +893,47 @@ const HomeScreen = () => {
     >
 
       <FlatList
+
         data={tableData}
+
         keyExtractor={(item) =>
           item.id?.toString() ||
           item.designation
         }
-        renderItem={({ item }) => (
 
-          <View style={styles.tableRow}>
+        renderItem={({
+          item
+        }) => (
+
+          <View
+            style={styles.tableRow}
+          >
 
             <Text
               style={[
                 styles.tableCell,
-                { flex: 2 },
+                {
+                  flex: 2
+                },
               ]}
             >
               {item.designation}
             </Text>
 
+
             <Text
               style={[
                 styles.tableCell,
-                { flex: -2 },
+                {
+                  flex: -2
+                },
               ]}
             >
+
               {item.totalQuantity.toLocaleString(
                 'fr-FR'
               )}
+
             </Text>
 
           </View>
@@ -697,16 +960,27 @@ const HomeScreen = () => {
         refreshControl={
 
           <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
+            refreshing={
+              refreshing
+            }
+            onRefresh={
+              onRefresh
+            }
           />
 
         }
+
       />
 
     </SafeAreaView>
+
   );
 };
+
+
+// ============================================================
+// STYLES
+// ============================================================
 
 const styles = StyleSheet.create({
 
