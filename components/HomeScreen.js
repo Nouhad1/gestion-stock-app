@@ -585,53 +585,12 @@ const HomeScreen = () => {
               marginTop: 4,
             }}
           >
-            Clients 209 et 221
+            Amine
           </Text>
 
         </View>
 
-
-        {/* VALEUR DES ENTRÉES */}
-
-        <View
-          style={styles.card}
-        >
-
-          <Text>
-            Valeur des entrées
-          </Text>
-
-          <FontAwesome5
-            name="shopping-cart"
-            size={28}
-            color="#28a745"
-          />
-
-          <Text
-            style={styles.cardValue}
-          >
-
-            {cardsData.valeurAchats.toLocaleString(
-              'fr-FR'
-            )}{' '}
-            DH
-
-          </Text>
-
-        </View>
-
-      </View>
-
-
-      {/* ====================================================
-          CARTE 2 : CHIFFRE ANNUEL
-          ==================================================== */}
-
-      <View
-        style={styles.cardRow}
-      >
-
-        <View
+<View
           style={styles.card}
         >
 
@@ -663,11 +622,52 @@ const HomeScreen = () => {
               marginTop: 4,
             }}
           >
-            Clients 209 et 221
+            Mehdi
           </Text>
 
         </View>
 
+       
+
+      </View>
+
+
+      {/* ====================================================
+          CARTE 2 : CHIFFRE ANNUEL
+          ==================================================== */}
+
+      <View
+        style={styles.cardRow}
+      >
+
+         {/* VALEUR DES ENTRÉES */}
+
+        {/* <View
+          style={styles.card}
+        >
+
+          <Text>
+            Valeur des entrées
+          </Text>
+
+          <FontAwesome5
+            name="shopping-cart"
+            size={28}
+            color="#28a745"
+          />
+
+          <Text
+            style={styles.cardValue}
+          >
+
+            {cardsData.valeurAchats.toLocaleString(
+              'fr-FR'
+            )}{' '}
+            DH
+
+          </Text>
+
+        </View> */}
 
         {/* VALEUR DES SORTIES */}
 
