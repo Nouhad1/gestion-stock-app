@@ -217,12 +217,12 @@ const stockAffichage = getStockDisplay(
   })} MAD
 </Text>
 
-<Text style={[styles.cell, { width: 120 }]}>
+{/* <Text style={[styles.cell, { width: 120 }]}>
   {prixMoyen.toLocaleString('fr-FR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })} MAD
-</Text>
+</Text> */}
       <View style={{ width: 100 }}>
         <View style={[styles.availability, style]}>
           <Text style={styles.availabilityText}>
@@ -286,7 +286,7 @@ const stockAffichage = getStockDisplay(
             <Text style={[styles.headerCell, { width: 80 }]}>Global</Text>
             <Text style={[styles.headerCell, { width: 120 }]}>Prix U</Text>
             <Text style={[styles.headerCell, { width: 120 }]}>Prix Total</Text>
-            <Text style={[styles.headerCell, { width: 120 }]}>Moyen</Text>
+            {/* <Text style={[styles.headerCell, { width: 120 }]}>Moyen</Text> */}
             <Text style={[styles.headerCell, { width: 100 }]}>État</Text>
           </View>
 

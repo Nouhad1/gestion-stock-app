@@ -80,38 +80,42 @@ const Notifications = () => {
 
   const renderItem = ({ item }) => (
 
-    <View style={styles.notification}>
+  <View style={styles.notification}>
 
-      <Text style={styles.titleNotif}>
-        💰 Aujourd'hui est le jour de paiement
+    <Text style={styles.titleNotif}>
+      💰 Aujourd'hui est le jour de paiement
+    </Text>
+
+    <Text style={styles.client}>
+      Client : {item.nom_client}
+    </Text>
+
+    <Text style={styles.text}>
+      BL N° : {item.bl_num || 'Non renseigné'}
+    </Text>
+
+    <Text style={styles.text}>
+      Produit : {item.designation_produit}
+    </Text>
+
+    <Text style={styles.text}>
+      Montant : {Number(item.montant || 0)
+        .toLocaleString('fr-FR')} DH
+    </Text>
+
+    <Text style={styles.date}>
+      Échéance : {new Date(item.Date_echeance)
+        .toLocaleDateString('fr-FR')}
+    </Text>
+
+    <View style={styles.badge}>
+      <Text style={styles.badgeText}>
+        NON PAYÉ
       </Text>
-
-      <Text style={styles.client}>
-        Client : {item.nom_client}
-      </Text>
-
-      <Text style={styles.text}>
-        Produit : {item.designation_produit}
-      </Text>
-
-      <Text style={styles.text}>
-        Montant : {Number(item.montant || 0)
-          .toLocaleString('fr-FR')} DH
-      </Text>
-
-      <Text style={styles.date}>
-        Échéance : {new Date(item.Date_echeance)
-          .toLocaleDateString('fr-FR')}
-      </Text>
-
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>
-          NON PAYÉ
-        </Text>
-      </View>
-
     </View>
-  );
+
+  </View>
+);
 
   return (
 

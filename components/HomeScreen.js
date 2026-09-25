@@ -69,10 +69,18 @@ const HomeScreen = () => {
   ];
 
   // ==========================================================
-  // NOUVEAU : chiffre annuel des clients 209 et 221
+  // CHIFFRE ANNUEL CLIENTS
   // ==========================================================
-  const [chiffreAnnuelClients, setChiffreAnnuelClients] =
+
+  const [chiffreClient209, setChiffreClient209] =
     useState(0);
+
+  const [chiffreClient221, setChiffreClient221] =
+    useState(0);
+
+  // ==========================================================
+  // CARDS
+  // ==========================================================
 
   const [cardsData, setCardsData] = useState({
     totalEntrees: 0,
@@ -81,52 +89,29 @@ const HomeScreen = () => {
     valeurSorties: 0,
   });
 
+  // ==========================================================
+  // CHART
+  // ==========================================================
+
   const [chartData, setChartData] = useState({
     labels: monthLabels,
     datasets: [{ data: [] }],
   });
 
+  // ==========================================================
+  // TABLE
+  // ==========================================================
+
   const [tableData, setTableData] = useState([]);
 
   const navigation = useNavigation();
 
+  // ==========================================================
+  // API
+  // ==========================================================
+
   const API_BASE =
     'https://gestion-stock-app-production.up.railway.app/api/dashboard';
-
-  // ==========================================================
-  // CHIFFRE ANNUEL CLIENTS 209 ET 221
-  // ==========================================================
-
-  const fetchChiffreAnnuelClients = async (year) => {
-
-    try {
-
-      const response = await axios.get(
-        'https://gestion-stock-app-production.up.railway.app/api/commandes/chiffre-annuel',
-        {
-          params: {
-            year: year,
-            clients: '209,221',
-          },
-        }
-      );
-
-      const chiffre =
-        Number(response.data.chiffre_annuel) || 0;
-
-      setChiffreAnnuelClients(chiffre);
-
-    } catch (err) {
-
-      console.log(
-        'Erreur chiffre annuel clients 209/221:',
-        err
-      );
-
-      setChiffreAnnuelClients(0);
-    }
-  };
-
 
   // ==========================================================
   // DASHBOARD
@@ -156,6 +141,10 @@ const HomeScreen = () => {
 
       ]);
 
+      // ======================================================
+      // CARDS EXISTANTES
+      // ======================================================
+
       setCardsData({
 
         totalEntrees:
@@ -172,36 +161,71 @@ const HomeScreen = () => {
 
       });
 
+      // ======================================================
+      // CHIFFRE CLIENT 209
+      // ======================================================
+
+      setChiffreClient209(
+        Number(
+          resCards.data.chiffreClient209
+        ) || 0
+      );
 
       // ======================================================
-      // NOUVEAU : récupérer le chiffre annuel
+      // CHIFFRE CLIENT 221
       // ======================================================
 
-      await fetchChiffreAnnuelClients(year);
+      setChiffreClient221(
+        Number(
+          resCards.data.chiffreClient221
+        ) || 0
+      );
 
+      console.log(
+        'Chiffre client AMINE:',
+        resCards.data.chiffreClient209
+      );
+
+      console.log(
+        'Chiffre client MEHDI:',
+        resCards.data.chiffreClient221
+      );
+
+      // ======================================================
+      // GRAPHIQUE
+      // ======================================================
 
       const dataMap = monthLabels.map(label => {
 
-        const found = resChart.data.find(
-          d => d.month === label
-        );
+        const found =
+          resChart.data.find(
+            d => d.month === label
+          );
 
-        const ca = parseFloat(found?.ca);
+        const ca =
+          parseFloat(found?.ca);
 
-        return isNaN(ca) ? 0 : ca;
+        return isNaN(ca)
+          ? 0
+          : ca;
 
       });
 
-
       setChartData({
+
         labels: monthLabels,
+
         datasets: [
           {
             data: dataMap
           }
         ],
+
       });
 
+      // ======================================================
+      // TABLEAU
+      // ======================================================
 
       const safeTable =
         resTable.data.map(item => ({
@@ -209,11 +233,15 @@ const HomeScreen = () => {
           ...item,
 
           totalQuantity:
-            parseFloat(item.totalQuantity) || 0,
+            parseFloat(
+              item.totalQuantity
+            ) || 0,
 
         }));
 
-      setTableData(safeTable);
+      setTableData(
+        safeTable
+      );
 
     } catch (err) {
 
@@ -224,7 +252,6 @@ const HomeScreen = () => {
 
     }
   };
-
 
   // ==========================================================
   // NOTIFICATIONS
@@ -261,7 +288,9 @@ const HomeScreen = () => {
             }
 
             const dateCmd =
-              new Date(cmd.Date_echeance);
+              new Date(
+                cmd.Date_echeance
+              );
 
             const aujourd =
               new Date();
@@ -294,7 +323,6 @@ const HomeScreen = () => {
     }
   };
 
-
   // ==========================================================
   // INITIALISATION
   // ==========================================================
@@ -305,13 +333,18 @@ const HomeScreen = () => {
 
       try {
 
-        const res = await axios.get(
-          `${API_BASE}/years`
+        const res =
+          await axios.get(
+            `${API_BASE}/years`
+          );
+
+        setYearList(
+          res.data
         );
 
-        setYearList(res.data);
-
-        if (res.data.length > 0) {
+        if (
+          res.data.length > 0
+        ) {
 
           const defaultYear =
             res.data[0];
@@ -338,6 +371,7 @@ const HomeScreen = () => {
       } finally {
 
         setLoading(false);
+
       }
 
     };
@@ -345,7 +379,6 @@ const HomeScreen = () => {
     initData();
 
   }, []);
-
 
   // ==========================================================
   // REFRESH
@@ -374,9 +407,9 @@ const HomeScreen = () => {
     } finally {
 
       setRefreshing(false);
+
     }
   };
-
 
   // ==========================================================
   // LOADING
@@ -398,7 +431,6 @@ const HomeScreen = () => {
     );
   }
 
-
   // ==========================================================
   // HEADER
   // ==========================================================
@@ -416,7 +448,9 @@ const HomeScreen = () => {
       >
 
         <View
-          style={styles.headerContent}
+          style={
+            styles.headerContent
+          }
         >
 
           <View
@@ -439,13 +473,17 @@ const HomeScreen = () => {
             <View>
 
               <Text
-                style={styles.headerTitle}
+                style={
+                  styles.headerTitle
+                }
               >
                 Bluestrek Dashboard
               </Text>
 
               <Text
-                style={styles.headerSubtitle}
+                style={
+                  styles.headerSubtitle
+                }
               >
                 Suivi des ventes et commandes
               </Text>
@@ -454,6 +492,7 @@ const HomeScreen = () => {
 
           </View>
 
+          {/* NOTIFICATION */}
 
           <TouchableOpacity
             onPress={() =>
@@ -497,8 +536,9 @@ const HomeScreen = () => {
 
       </LinearGradient>
 
-
-      {/* PICKER ANNÉE */}
+      {/* ====================================================
+          PICKER ANNÉE
+          ==================================================== */}
 
       <View
         style={{
@@ -507,15 +547,20 @@ const HomeScreen = () => {
       >
 
         <Picker
+
           selectedValue={
             selectedYear
           }
 
           onValueChange={(value) => {
 
-            setSelectedYear(value);
+            setSelectedYear(
+              value
+            );
 
-            fetchDashboard(value);
+            fetchDashboard(
+              value
+            );
 
           }}
 
@@ -528,11 +573,13 @@ const HomeScreen = () => {
         >
 
           {yearList.map(
-            (year) => (
+            year => (
 
               <Picker.Item
                 key={year}
-                label={year.toString()}
+                label={
+                  year.toString()
+                }
                 value={year}
                 color="#000"
               />
@@ -544,21 +591,26 @@ const HomeScreen = () => {
 
       </View>
 
-
       {/* ====================================================
-          CARTE 1 : CHIFFRE ANNUEL
+          CLIENT 209 ET CLIENT 221
           ==================================================== */}
 
       <View
         style={styles.cardRow}
       >
 
+        {/* CLIENT 209 */}
+
         <View
           style={styles.card}
         >
 
-          <Text>
-            Chiffre annuel
+          <Text
+            style={
+              styles.cardTitle
+            }
+          >
+            AMINE
           </Text>
 
           <Ionicons
@@ -568,10 +620,12 @@ const HomeScreen = () => {
           />
 
           <Text
-            style={styles.cardValue}
+            style={
+              styles.cardValue
+            }
           >
 
-            {chiffreAnnuelClients.toLocaleString(
+            {chiffreClient209.toLocaleString(
               'fr-FR'
             )}{' '}
             DH
@@ -579,23 +633,27 @@ const HomeScreen = () => {
           </Text>
 
           <Text
-            style={{
-              fontSize: 11,
-              color: '#666',
-              marginTop: 4,
-            }}
+            style={
+              styles.cardDescription
+            }
           >
-            Amine
+            {/* Chiffre annuel */}
           </Text>
 
         </View>
 
-<View
+        {/* CLIENT 221 */}
+
+        <View
           style={styles.card}
         >
 
-          <Text>
-            Chiffre annuel
+          <Text
+            style={
+              styles.cardTitle
+            }
+          >
+            MEHDI
           </Text>
 
           <Ionicons
@@ -605,10 +663,12 @@ const HomeScreen = () => {
           />
 
           <Text
-            style={styles.cardValue}
+            style={
+              styles.cardValue
+            }
           >
 
-            {chiffreAnnuelClients.toLocaleString(
+            {chiffreClient221.toLocaleString(
               'fr-FR'
             )}{' '}
             DH
@@ -616,60 +676,24 @@ const HomeScreen = () => {
           </Text>
 
           <Text
-            style={{
-              fontSize: 11,
-              color: '#666',
-              marginTop: 4,
-            }}
+            style={
+              styles.cardDescription
+            }
           >
-            Mehdi
+            {/* Chiffre annuel */}
           </Text>
 
         </View>
 
-       
-
       </View>
 
-
       {/* ====================================================
-          CARTE 2 : CHIFFRE ANNUEL
+          VALEUR DES SORTIES
           ==================================================== */}
 
       <View
         style={styles.cardRow}
       >
-
-         {/* VALEUR DES ENTRÉES */}
-
-        {/* <View
-          style={styles.card}
-        >
-
-          <Text>
-            Valeur des entrées
-          </Text>
-
-          <FontAwesome5
-            name="shopping-cart"
-            size={28}
-            color="#28a745"
-          />
-
-          <Text
-            style={styles.cardValue}
-          >
-
-            {cardsData.valeurAchats.toLocaleString(
-              'fr-FR'
-            )}{' '}
-            DH
-
-          </Text>
-
-        </View> */}
-
-        {/* VALEUR DES SORTIES */}
 
         <View
           style={styles.card}
@@ -686,7 +710,9 @@ const HomeScreen = () => {
           />
 
           <Text
-            style={styles.cardValue}
+            style={
+              styles.cardValue
+            }
           >
 
             {cardsData.valeurSorties.toLocaleString(
@@ -700,23 +726,25 @@ const HomeScreen = () => {
 
       </View>
 
-
       {/* ====================================================
           GRAPHIQUE
           ==================================================== */}
 
       <Text
-        style={styles.sectionTitle}
+        style={
+          styles.sectionTitle
+        }
       >
         📊 Chiffre d'affaires mensuel
       </Text>
-
 
       <View>
 
         <LineChart
 
-          data={chartData}
+          data={
+            chartData
+          }
 
           width={
             screenWidth - 20
@@ -790,7 +818,6 @@ const HomeScreen = () => {
 
         />
 
-
         {selectedPoint && (
 
           <View
@@ -834,20 +861,22 @@ const HomeScreen = () => {
 
       </View>
 
-
       {/* ====================================================
-          TABLE
+          TABLEAU
           ==================================================== */}
 
       <Text
-        style={styles.sectionTitle}
+        style={
+          styles.sectionTitle
+        }
       >
         📦 Produits commandés
       </Text>
 
-
       <View
-        style={styles.tableHeader}
+        style={
+          styles.tableHeader
+        }
       >
 
         <Text
@@ -877,7 +906,6 @@ const HomeScreen = () => {
     </View>
   );
 
-
   // ==========================================================
   // RETURN
   // ==========================================================
@@ -894,9 +922,11 @@ const HomeScreen = () => {
 
       <FlatList
 
-        data={tableData}
+        data={
+          tableData
+        }
 
-        keyExtractor={(item) =>
+        keyExtractor={item =>
           item.id?.toString() ||
           item.designation
         }
@@ -906,7 +936,9 @@ const HomeScreen = () => {
         }) => (
 
           <View
-            style={styles.tableRow}
+            style={
+              styles.tableRow
+            }
           >
 
             <Text
@@ -914,12 +946,12 @@ const HomeScreen = () => {
                 styles.tableCell,
                 {
                   flex: 2
+
                 },
               ]}
             >
               {item.designation}
             </Text>
-
 
             <Text
               style={[
@@ -977,7 +1009,6 @@ const HomeScreen = () => {
   );
 };
 
-
 // ============================================================
 // STYLES
 // ============================================================
@@ -1009,10 +1040,24 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+
   cardValue: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#007bff',
+    marginTop: 5,
+  },
+
+  cardDescription: {
+    fontSize: 11,
+    color: '#666',
+    marginTop: 4,
   },
 
   sectionTitle: {
