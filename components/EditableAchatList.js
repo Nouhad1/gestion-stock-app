@@ -229,8 +229,8 @@ const AchatsScreen = () => {
   const saveProduit = () => {
     if (
       !newProduit.reference ||
-      !newProduit.designation ||
-      !newProduit.quantite_stock
+      !newProduit.designation 
+      //!newProduit.quantite_stock
     ) {
       return Alert.alert(
         'Erreur',
@@ -239,7 +239,7 @@ const AchatsScreen = () => {
     }
 
     const quantite_stock =
-      parseFloat(newProduit.quantite_stock) || 0;
+      //parseFloat(newProduit.quantite_stock) || 0;
 
     axios
       .post(
@@ -259,8 +259,8 @@ const AchatsScreen = () => {
 
         setNewProduit({
           reference: '',
-          designation: '',
-          quantite_stock: ''
+          designation: ''
+          //quantite_stock: ''
         });
 
         setModalVisible(false);
