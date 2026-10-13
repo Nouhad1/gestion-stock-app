@@ -392,9 +392,9 @@ console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
         {formatMontant(amount)} DH
       </Text>
 
-      <Text style={styles.cardDescription}>
+      {/* <Text style={styles.cardDescription}>
         Chiffre annuel {selectedYear || ''}
-      </Text>
+      </Text> */}
     </View>
   );
 
@@ -516,9 +516,9 @@ console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
             {formatMontant(cardsData.valeurSorties)} DH
           </Text>
 
-          <Text style={styles.cardDescription}>
+          {/* <Text style={styles.cardDescription}>
             Total des commandes
-          </Text>
+          </Text> */}
         </View>
       </View>
 
