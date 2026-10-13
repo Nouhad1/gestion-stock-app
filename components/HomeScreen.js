@@ -167,9 +167,12 @@ const HomeScreen = () => {
         Number(resCards.data.chiffreClient281) || 0
       );
 
-      console.log('Chiffre annuel Amine :', resCards.data.chiffreClient209);
-      console.log('Chiffre annuel Mehdi :', resCards.data.chiffreClient221);
-      console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
+      
+console.log('Réponse complète de /cards :', resCards.data);
+console.log('Clés reçues :', Object.keys(resCards.data));
+console.log('Chiffre annuel Amine :', resCards.data.chiffreClient209);
+console.log('Chiffre annuel Mehdi :', resCards.data.chiffreClient221);
+console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
 
       // --------------------------------------------------------
       // GRAPHIQUE MENSUEL
