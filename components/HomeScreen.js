@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+
+import React, { useEffect, useState, useCallback } from 'react';
 
 import {
   View,
@@ -12,11 +12,10 @@ import {
   RefreshControl,
 } from 'react-native';
 
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { LineChart } from 'react-native-chart-kit';
-
 import axios from 'axios';
-
 import { LinearGradient } from 'expo-linear-gradient';
 
 import {
@@ -43,43 +42,54 @@ const monthLabels = [
   'Déc',
 ];
 
+const API_BASE =
+  'https://gestion-stock-app-production.up.railway.app/api/dashboard';
+
+const API_COMMANDES =
+  'https://gestion-stock-app-production.up.railway.app/api/commandes';
+
+const clientsAvecTransport = [209, 221, 281, 215];
+
+const formatMontant = (value) => {
+  return (Number(value) || 0).toLocaleString('fr-FR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};
+
+const formatQuantite = (value) => {
+  return (Number(value) || 0).toLocaleString('fr-FR', {
+    maximumFractionDigits: 2,
+  });
+};
+
 const HomeScreen = () => {
+  const navigation = useNavigation();
+
+  // ==========================================================
+  // ÉTATS GÉNÉRAUX
+  // ==========================================================
 
   const [loading, setLoading] = useState(true);
-
-  const [refreshing, setRefreshing] =
-    useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [yearList, setYearList] = useState([]);
+  const [selectedYear, setSelectedYear] = useState(null);
 
-  const [selectedYear, setSelectedYear] =
-    useState(null);
+  const [hasNotification, setHasNotification] = useState(false);
 
-  const [selectedPoint, setSelectedPoint] =
-    useState(null);
-
-  const [hasNotification, setHasNotification] =
-    useState(false);
-
-  const clientsAvecTransport = [
-    209,
-    221,
-    281,
-    215,
-  ];
+  const [selectedPoint, setSelectedPoint] = useState(null);
 
   // ==========================================================
-  // CHIFFRE ANNUEL CLIENTS
+  // CHIFFRES ANNUELS DES CLIENTS
   // ==========================================================
 
-  const [chiffreClient209, setChiffreClient209] =
-    useState(0);
-
-  const [chiffreClient221, setChiffreClient221] =
-    useState(0);
+  const [chiffreClient209, setChiffreClient209] = useState(0);
+  const [chiffreClient221, setChiffreClient221] = useState(0);
+  const [chiffreClient281, setChiffreClient281] = useState(0);
 
   // ==========================================================
-  // CARDS
+  // CARTES DU TABLEAU DE BORD
   // ==========================================================
 
   const [cardsData, setCardsData] = useState({
@@ -90,302 +100,246 @@ const HomeScreen = () => {
   });
 
   // ==========================================================
-  // CHART
+  // GRAPHIQUE
   // ==========================================================
 
   const [chartData, setChartData] = useState({
     labels: monthLabels,
-    datasets: [{ data: [] }],
+    datasets: [{ data: Array(12).fill(0) }],
   });
 
   // ==========================================================
-  // TABLE
+  // TABLEAU DES PRODUITS
   // ==========================================================
 
   const [tableData, setTableData] = useState([]);
 
-  const navigation = useNavigation();
-
   // ==========================================================
-  // API
+  // CHARGEMENT DU TABLEAU DE BORD
   // ==========================================================
 
-  const API_BASE =
-    'https://gestion-stock-app-production.up.railway.app/api/dashboard';
-
-  // ==========================================================
-  // DASHBOARD
-  // ==========================================================
-
-  const fetchDashboard = async (year) => {
+  const fetchDashboard = useCallback(async (year) => {
+    if (!year) {
+      return;
+    }
 
     try {
-
-      const [
-        resCards,
-        resChart,
-        resTable
-      ] = await Promise.all([
-
-        axios.get(
-          `${API_BASE}/cards?year=${year}`
-        ),
-
-        axios.get(
-          `${API_BASE}/chart?year=${year}`
-        ),
-
-        axios.get(
-          `${API_BASE}/products?year=${year}`
-        ),
-
+      const [resCards, resChart, resTable] = await Promise.all([
+        axios.get(`${API_BASE}/cards?year=${year}`),
+        axios.get(`${API_BASE}/chart?year=${year}`),
+        axios.get(`${API_BASE}/products?year=${year}`),
       ]);
 
-      // ======================================================
-      // CARDS EXISTANTES
-      // ======================================================
+      // --------------------------------------------------------
+      // CARTES GÉNÉRALES
+      // --------------------------------------------------------
 
       setCardsData({
-
-        totalEntrees:
-          Number(resCards.data.totalEntrees) || 0,
-
-        valeurAchats:
-          Number(resCards.data.valeurAchats) || 0,
-
-        totalSorties:
-          Number(resCards.data.totalSorties) || 0,
-
-        valeurSorties:
-          Number(resCards.data.valeurSorties) || 0,
-
+        totalEntrees: Number(resCards.data.totalEntrees) || 0,
+        valeurAchats: Number(resCards.data.valeurAchats) || 0,
+        totalSorties: Number(resCards.data.totalSorties) || 0,
+        valeurSorties: Number(resCards.data.valeurSorties) || 0,
       });
 
-      // ======================================================
-      // CHIFFRE CLIENT 209
-      // ======================================================
+      // --------------------------------------------------------
+      // CLIENT 209 : AMINE
+      // --------------------------------------------------------
 
       setChiffreClient209(
-        Number(
-          resCards.data.chiffreClient209
-        ) || 0
+        Number(resCards.data.chiffreClient209) || 0
       );
 
-      // ======================================================
-      // CHIFFRE CLIENT 221
-      // ======================================================
+      // --------------------------------------------------------
+      // CLIENT 221 : MEHDI
+      // --------------------------------------------------------
 
       setChiffreClient221(
-        Number(
-          resCards.data.chiffreClient221
-        ) || 0
+        Number(resCards.data.chiffreClient221) || 0
       );
 
-      console.log(
-        'Chiffre client AMINE:',
-        resCards.data.chiffreClient209
+      // --------------------------------------------------------
+      // CLIENT 281 : SALAH
+      // IMPORTANT : utiliser chiffreClient281
+      // et non chiffreClient221
+      // --------------------------------------------------------
+
+      setChiffreClient281(
+        Number(resCards.data.chiffreClient281) || 0
       );
 
-      console.log(
-        'Chiffre client MEHDI:',
-        resCards.data.chiffreClient221
-      );
+      console.log('Chiffre annuel Amine :', resCards.data.chiffreClient209);
+      console.log('Chiffre annuel Mehdi :', resCards.data.chiffreClient221);
+      console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
 
-      // ======================================================
-      // GRAPHIQUE
-      // ======================================================
+      // --------------------------------------------------------
+      // GRAPHIQUE MENSUEL
+      // --------------------------------------------------------
 
-      const dataMap = monthLabels.map(label => {
+      const chartRows = Array.isArray(resChart.data)
+        ? resChart.data
+        : [];
 
-        const found =
-          resChart.data.find(
-            d => d.month === label
-          );
+      const dataMap = monthLabels.map((label) => {
+        const found = chartRows.find(
+          (item) => item.month === label
+        );
 
-        const ca =
-          parseFloat(found?.ca);
-
-        return isNaN(ca)
-          ? 0
-          : ca;
-
+        return Number(found?.ca) || 0;
       });
 
       setChartData({
-
         labels: monthLabels,
-
-        datasets: [
-          {
-            data: dataMap
-          }
-        ],
-
+        datasets: [{ data: dataMap }],
       });
 
-      // ======================================================
-      // TABLEAU
-      // ======================================================
+      // Réinitialiser l'infobulle lors du changement d'année
+      setSelectedPoint(null);
 
-      const safeTable =
-        resTable.data.map(item => ({
+      // --------------------------------------------------------
+      // TABLEAU DES PRODUITS
+      // --------------------------------------------------------
 
-          ...item,
+      const products = Array.isArray(resTable.data)
+        ? resTable.data
+        : [];
 
-          totalQuantity:
-            parseFloat(
-              item.totalQuantity
-            ) || 0,
+      const safeTable = products.map((item) => ({
+        ...item,
+        totalQuantity: Number(item.totalQuantity) || 0,
+        isLaniere: Boolean(item.isLaniere),
+        longueurParRouleau:
+          Number(item.longueurParRouleau) || 0,
+      }));
 
-        }));
-
-      setTableData(
-        safeTable
-      );
-
+      setTableData(safeTable);
     } catch (err) {
-
-      console.log(
-        'Erreur dashboard:',
-        err
+      console.error(
+        'Erreur chargement dashboard :',
+        err.response?.data || err.message
       );
-
     }
-  };
+  }, []);
 
   // ==========================================================
   // NOTIFICATIONS
   // ==========================================================
 
-  const fetchNotifications = async () => {
-
+  const fetchNotifications = useCallback(async () => {
     try {
+      const resNotif = await axios.get(API_COMMANDES);
 
-      const resNotif = await axios.get(
-        'https://gestion-stock-app-production.up.railway.app/api/commandes'
-      );
+      const commandes = Array.isArray(resNotif.data)
+        ? resNotif.data
+        : [];
 
-      const notifications =
-        resNotif.data.filter(
-          cmd => {
+      const maintenant = new Date();
 
-            if (!cmd.Date_echeance) {
-              return false;
-            }
+      const notifications = commandes.filter((cmd) => {
+        if (!cmd.Date_echeance) {
+          return false;
+        }
 
-            if (
-              !clientsAvecTransport.includes(
-                Number(cmd.client_id)
-              )
-            ) {
-              return false;
-            }
+        if (
+          !clientsAvecTransport.includes(Number(cmd.client_id))
+        ) {
+          return false;
+        }
 
-            if (
-              Number(cmd.paiement_id) === 1
-            ) {
-              return false;
-            }
+        // Conserver la logique de paiement existante :
+        // paiement_id = 1 signifie payé.
+        if (Number(cmd.paiement_id) === 1) {
+          return false;
+        }
 
-            const dateCmd =
-              new Date(
-                cmd.Date_echeance
-              );
+        const dateEcheance = new Date(cmd.Date_echeance);
 
-            const aujourd =
-              new Date();
+        if (Number.isNaN(dateEcheance.getTime())) {
+          return false;
+        }
 
-            const memeJour =
-              dateCmd.getDate() ===
-                aujourd.getDate() &&
-
-              dateCmd.getMonth() ===
-                aujourd.getMonth() &&
-
-              dateCmd.getFullYear() ===
-                aujourd.getFullYear();
-
-            return memeJour;
-          }
+        return (
+          dateEcheance.getDate() === maintenant.getDate() &&
+          dateEcheance.getMonth() === maintenant.getMonth() &&
+          dateEcheance.getFullYear() === maintenant.getFullYear()
         );
+      });
 
-      setHasNotification(
-        notifications.length > 0
-      );
-
+      setHasNotification(notifications.length > 0);
     } catch (err) {
-
-      console.log(
-        'Erreur notifications:',
-        err
+      console.error(
+        'Erreur notifications :',
+        err.response?.data || err.message
       );
-
     }
-  };
+  }, []);
 
   // ==========================================================
   // INITIALISATION
   // ==========================================================
 
   useEffect(() => {
+    let mounted = true;
 
     const initData = async () => {
-
       try {
+        const res = await axios.get(`${API_BASE}/years`);
 
-        const res =
-          await axios.get(
-            `${API_BASE}/years`
-          );
+        if (!mounted) {
+          return;
+        }
 
-        setYearList(
-          res.data
-        );
+        const years = Array.isArray(res.data)
+          ? res.data
+          : [];
 
-        if (
-          res.data.length > 0
-        ) {
+        setYearList(years);
 
-          const defaultYear =
-            res.data[0];
+        if (years.length > 0) {
+          const defaultYear = years[0];
 
-          setSelectedYear(
-            defaultYear
-          );
+          setSelectedYear(defaultYear);
 
-          await fetchDashboard(
-            defaultYear
-          );
-
+          await fetchDashboard(defaultYear);
         }
 
         await fetchNotifications();
-
       } catch (err) {
-
-        console.log(
-          'Erreur chargement:',
-          err
+        console.error(
+          'Erreur initialisation :',
+          err.response?.data || err.message
         );
-
       } finally {
-
-        setLoading(false);
-
+        if (mounted) {
+          setLoading(false);
+        }
       }
-
     };
 
     initData();
 
-  }, []);
+    return () => {
+      mounted = false;
+    };
+  }, [fetchDashboard, fetchNotifications]);
 
   // ==========================================================
-  // REFRESH
+  // CHANGEMENT D'ANNÉE
+  // ==========================================================
+
+  const handleYearChange = (year) => {
+    if (!year || year === selectedYear) {
+      return;
+    }
+
+    setSelectedYear(year);
+    fetchDashboard(year);
+  };
+
+  // ==========================================================
+  // ACTUALISATION
   // ==========================================================
 
   const onRefresh = async () => {
-
     if (!selectedYear) {
       return;
     }
@@ -393,118 +347,91 @@ const HomeScreen = () => {
     setRefreshing(true);
 
     try {
-
-      await fetchDashboard(
-        selectedYear
-      );
-
-      await fetchNotifications();
-
-    } catch (err) {
-
-      console.log(err);
-
+      await Promise.all([
+        fetchDashboard(selectedYear),
+        fetchNotifications(),
+      ]);
     } finally {
-
       setRefreshing(false);
-
     }
   };
 
   // ==========================================================
-  // LOADING
+  // CHARGEMENT
   // ==========================================================
 
   if (loading) {
-
     return (
-
-      <View style={styles.loader}>
-
-        <ActivityIndicator
-          size="large"
-          color="#007bff"
-        />
-
-      </View>
-
+      <SafeAreaView style={styles.loader}>
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text style={styles.loadingText}>
+          Chargement du tableau de bord...
+        </Text>
+      </SafeAreaView>
     );
   }
 
   // ==========================================================
-  // HEADER
+  // CARTE CLIENT
+  // ==========================================================
+
+  const renderClientCard = (name, amount, color) => (
+    <View style={styles.card} key={name}>
+      <Text style={styles.cardTitle}>{name}</Text>
+
+      <Ionicons
+        name="cash-outline"
+        size={28}
+        color={color}
+      />
+
+      <Text style={styles.cardValue}>
+        {formatMontant(amount)} DH
+      </Text>
+
+      <Text style={styles.cardDescription}>
+        Chiffre annuel {selectedYear || ''}
+      </Text>
+    </View>
+  );
+
+  // ==========================================================
+  // EN-TÊTE DU TABLEAU DE BORD
   // ==========================================================
 
   const renderHeader = () => (
-
     <View>
+      {/* EN-TÊTE BLEU */}
 
       <LinearGradient
-        colors={[
-          '#2563eb',
-          '#1e40af'
-        ]}
+        colors={['#2563eb', '#1e40af']}
         style={styles.header}
       >
-
-        <View
-          style={
-            styles.headerContent
-          }
-        >
-
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              flex: 1,
-            }}
-          >
-
+        <View style={styles.headerContent}>
+          <View style={styles.headerTitleContainer}>
             <FontAwesome5
               name="cube"
               size={28}
               color="#fff"
-              style={{
-                marginRight: 10
-              }}
+              style={styles.headerIcon}
             />
 
-            <View>
-
-              <Text
-                style={
-                  styles.headerTitle
-                }
-              >
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle}>
                 Bluestrek Dashboard
               </Text>
 
-              <Text
-                style={
-                  styles.headerSubtitle
-                }
-              >
+              <Text style={styles.headerSubtitle}>
                 Suivi des ventes et commandes
               </Text>
-
             </View>
-
           </View>
 
-          {/* NOTIFICATION */}
-
           <TouchableOpacity
-            onPress={() =>
-              navigation.navigate(
-                'Notifications'
-              )
-            }
-            style={{
-              position: 'relative',
-            }}
+            onPress={() => navigation.navigate('Notifications')}
+            style={styles.notificationButton}
+            accessibilityLabel="Ouvrir les notifications"
           >
-
             <Ionicons
               name="notifications-outline"
               size={28}
@@ -512,218 +439,84 @@ const HomeScreen = () => {
             />
 
             {hasNotification && (
-
-              <View
-                style={{
-                  position: 'absolute',
-                  top: -2,
-                  right: -2,
-                  width: 12,
-                  height: 12,
-                  borderRadius: 6,
-                  backgroundColor:
-                    '#ef4444',
-                  borderWidth: 2,
-                  borderColor: '#fff',
-                }}
-              />
-
+              <View style={styles.notificationDot} />
             )}
-
           </TouchableOpacity>
-
         </View>
-
       </LinearGradient>
 
-      {/* ====================================================
-          PICKER ANNÉE
-          ==================================================== */}
+      {/* SÉLECTION DE L'ANNÉE */}
 
-      <View
-        style={{
-          margin: 10
-        }}
-      >
+      <View style={styles.yearContainer}>
+        {/* <Text style={styles.yearLabel}>
+          Année du tableau de bord
+        </Text> */}
 
-        <Picker
-
-          selectedValue={
-            selectedYear
-          }
-
-          onValueChange={(value) => {
-
-            setSelectedYear(
-              value
-            );
-
-            fetchDashboard(
-              value
-            );
-
-          }}
-
-          style={{
-            backgroundColor: '#fff',
-            color: '#000',
-          }}
-
-          dropdownIconColor="#000"
-        >
-
-          {yearList.map(
-            year => (
-
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={selectedYear}
+            onValueChange={handleYearChange}
+            style={styles.picker}
+            dropdownIconColor="#1e40af"
+          >
+            {yearList.map((year) => (
               <Picker.Item
-                key={year}
-                label={
-                  year.toString()
-                }
+                key={String(year)}
+                label={String(year)}
                 value={year}
-                color="#000"
+                color="#111827"
               />
-
-            )
-          )}
-
-        </Picker>
-
+            ))}
+          </Picker>
+        </View>
       </View>
 
-      {/* ====================================================
-          CLIENT 209 ET CLIENT 221
-          ==================================================== */}
+      {/* CLIENTS 209 ET 221 */}
 
-      <View
-        style={styles.cardRow}
-      >
+      <View style={styles.cardRow}>
+        {renderClientCard(
+          'AMINE',
+          chiffreClient209,
+          '#2563eb'
+        )}
 
-        {/* CLIENT 209 */}
-
-        <View
-          style={styles.card}
-        >
-
-          <Text
-            style={
-              styles.cardTitle
-            }
-          >
-            AMINE
-          </Text>
-
-          <Ionicons
-            name="cash-outline"
-            size={28}
-            color="#007bff"
-          />
-
-          <Text
-            style={
-              styles.cardValue
-            }
-          >
-
-            {chiffreClient209.toLocaleString(
-              'fr-FR'
-            )}{' '}
-            DH
-
-          </Text>
-
-          <Text
-            style={
-              styles.cardDescription
-            }
-          >
-            {/* Chiffre annuel */}
-          </Text>
-
-        </View>
-
-        {/* CLIENT 221 */}
-
-        <View
-          style={styles.card}
-        >
-
-          <Text
-            style={
-              styles.cardTitle
-            }
-          >
-            MEHDI
-          </Text>
-
-          <Ionicons
-            name="cash-outline"
-            size={28}
-            color="#dc3545"
-          />
-
-          <Text
-            style={
-              styles.cardValue
-            }
-          >
-
-            {chiffreClient221.toLocaleString(
-              'fr-FR'
-            )}{' '}
-            DH
-
-          </Text>
-
-          <Text
-            style={
-              styles.cardDescription
-            }
-          >
-            {/* Chiffre annuel */}
-          </Text>
-
-        </View>
-
+        {renderClientCard(
+          'MEHDI',
+          chiffreClient221,
+          '#dc3545'
+        )}
       </View>
 
-      {/* ====================================================
-          VALEUR DES SORTIES
-          ==================================================== */}
+      {/* CLIENT 281 */}
 
-      <View
-        style={styles.cardRow}
-      >
+      <View style={styles.cardRow}>
+        {renderClientCard(
+          'SALAH',
+          chiffreClient281,
+          '#3d8a26'
+        )}
 
-        <View
-          style={styles.card}
-        >
+        {/* VALEUR DES SORTIES */}
 
-          <Text>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>
             Valeur des sorties
           </Text>
 
           <FontAwesome5
             name="coins"
             size={28}
-            color="#ffc107"
+            color="#e0a800"
           />
 
-          <Text
-            style={
-              styles.cardValue
-            }
-          >
-
-            {cardsData.valeurSorties.toLocaleString(
-              'fr-FR'
-            )}{' '}
-            DH
-
+          <Text style={styles.cardValue}>
+            {formatMontant(cardsData.valeurSorties)} DH
           </Text>
 
+          <Text style={styles.cardDescription}>
+            Total des commandes
+          </Text>
         </View>
-
       </View>
 
       {/* ====================================================
@@ -860,31 +653,19 @@ const HomeScreen = () => {
         )}
 
       </View>
+      {/* TITRE DU TABLEAU */}
 
-      {/* ====================================================
-          TABLEAU
-          ==================================================== */}
-
-      <Text
-        style={
-          styles.sectionTitle
-        }
-      >
+      <Text style={styles.sectionTitle}>
         📦 Produits commandés
       </Text>
 
-      <View
-        style={
-          styles.tableHeader
-        }
-      >
+      {/* EN-TÊTE DU TABLEAU */}
 
+      <View style={styles.tableHeader}>
         <Text
           style={[
             styles.tableCellHeader,
-            {
-              flex: 2
-            },
+            styles.designationColumn,
           ]}
         >
           Désignation
@@ -893,119 +674,68 @@ const HomeScreen = () => {
         <Text
           style={[
             styles.tableCellHeader,
-            {
-              flex: -2
-            },
+            styles.quantityColumn,
           ]}
         >
-          Qté Commandée
+          Qté commandée
         </Text>
-
       </View>
-
     </View>
   );
 
   // ==========================================================
-  // RETURN
+  // AFFICHAGE
   // ==========================================================
 
   return (
-
-    <SafeAreaView
-      style={{
-        flex: 1,
-        backgroundColor:
-          '#f9f9f9ff',
-      }}
-    >
-
+    <SafeAreaView style={styles.safeArea}>
       <FlatList
-
-        data={
-          tableData
+        data={tableData}
+        keyExtractor={(item, index) =>
+          item.reference != null
+            ? String(item.reference)
+            : `${item.designation || 'produit'}-${index}`
         }
-
-        keyExtractor={item =>
-          item.id?.toString() ||
-          item.designation
-        }
-
-        renderItem={({
-          item
-        }) => (
-
-          <View
-            style={
-              styles.tableRow
-            }
-          >
-
+        renderItem={({ item }) => (
+          <View style={styles.tableRow}>
             <Text
               style={[
                 styles.tableCell,
-                {
-                  flex: 2
-
-                },
+                styles.designationColumn,
               ]}
             >
-              {item.designation}
+              {item.designation || 'Sans désignation'}
             </Text>
 
             <Text
               style={[
                 styles.tableCell,
-                {
-                  flex: -2
-                },
+                styles.quantityColumn,
               ]}
             >
-
-              {item.totalQuantity.toLocaleString(
-                'fr-FR'
-              )}
-
+              {formatQuantite(item.totalQuantity)}
+              {item.isLaniere ? ' Roul' : ''}
             </Text>
-
           </View>
-
         )}
-
         ListEmptyComponent={
-
-          <Text
-            style={{
-              textAlign: 'center',
-              margin: 10,
-            }}
-          >
+          <Text style={styles.emptyText}>
             Aucune commande pour cette année
           </Text>
-
         }
-
-        ListHeaderComponent={
-          renderHeader
-        }
-
+        ListHeaderComponent={renderHeader}
         refreshControl={
-
           <RefreshControl
-            refreshing={
-              refreshing
-            }
-            onRefresh={
-              onRefresh
-            }
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#2563eb']}
+            tintColor="#2563eb"
           />
-
         }
-
+        contentContainerStyle={styles.listContent}
+        keyboardShouldPersistTaps="handled"
       />
-
     </SafeAreaView>
-
   );
 };
 
@@ -1014,81 +744,35 @@ const HomeScreen = () => {
 // ============================================================
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
 
   loader: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f9fafb',
   },
 
-  cardRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    margin: 10,
-  },
-
-  card: {
-    flex: 1,
-    backgroundColor: '#fff',
-    margin: 5,
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 8,
-  },
-
-  cardValue: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#007bff',
-    marginTop: 5,
-  },
-
-  cardDescription: {
-    fontSize: 11,
-    color: '#666',
-    marginTop: 4,
-  },
-
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    margin: 10,
-    color: '#333',
-  },
-
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#ecded1ff',
-    padding: 10,
-  },
-
-  tableRow: {
-    flexDirection: 'row',
-    padding: 10,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#ccc',
-  },
-
-  tableCell: {
+  loadingText: {
+    marginTop: 12,
+    color: '#374151',
     fontSize: 14,
-    color: '#333',
   },
+
+  listContent: {
+    paddingBottom: 25,
+  },
+
+  // EN-TÊTE
 
   header: {
-    padding: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
     shadowColor: '#000',
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.15,
     shadowRadius: 5,
     elevation: 3,
   },
@@ -1099,6 +783,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
 
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+
+  headerIcon: {
+    marginRight: 12,
+  },
+
+  headerTextContainer: {
+    flex: 1,
+  },
+
   headerTitle: {
     color: '#fff',
     fontSize: 20,
@@ -1106,17 +804,215 @@ const styles = StyleSheet.create({
   },
 
   headerSubtitle: {
-    color: '#d1d5db',
+    color: '#dbeafe',
+    fontSize: 13,
+    marginTop: 4,
+  },
+
+  notificationButton: {
+    marginLeft: 10,
+    padding: 5,
+    position: 'relative',
+  },
+
+  notificationDot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#ef4444',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+
+  // ANNÉE
+
+  yearContainer: {
+    marginHorizontal: 10,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+
+  yearLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 5,
+    marginLeft: 4,
+  },
+
+  pickerContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    overflow: 'hidden',
+  },
+
+  picker: {
+    color: '#111827',
+    width: '100%',
+  },
+
+  // CARTES
+
+  cardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: 5,
+    marginTop: 5,
+    marginBottom: 3,
+  },
+
+  card: {
+    flex: 1,
+    minWidth: 0,
+    backgroundColor: '#fff',
+    margin: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 9,
+    textAlign: 'center',
+  },
+
+  cardValue: {
     fontSize: 14,
-    marginTop: 2,
+    fontWeight: 'bold',
+    color: '#2563eb',
+    marginTop: 7,
+    textAlign: 'center',
+  },
+
+  cardDescription: {
+    fontSize: 10,
+    color: '#6b7280',
+    marginTop: 5,
+    textAlign: 'center',
+  },
+
+  // SECTIONS
+
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    marginHorizontal: 12,
+    marginTop: 18,
+    marginBottom: 10,
+    color: '#1f2937',
+  },
+
+  // GRAPHIQUE
+
+  chartContainer: {
+    marginHorizontal: 10,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+
+  chart: {
+    borderRadius: 12,
+  },
+
+  selectedPointContainer: {
+    marginHorizontal: 12,
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: '#eff6ff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  selectedPointTitle: {
+    color: '#1e40af',
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+
+  selectedPointValue: {
+    flex: 1,
+    textAlign: 'right',
+    color: '#111827',
+    fontWeight: 'bold',
+    fontSize: 13,
+    marginHorizontal: 8,
+  },
+
+  closePointButton: {
+    paddingLeft: 4,
+  },
+
+  // TABLEAU
+
+  tableHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#dbeafe',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    marginHorizontal: 10,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    marginHorizontal: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e5e7eb',
+  },
+
+  designationColumn: {
+    flex: 2,
+    paddingRight: 8,
+    textAlign: 'left',
+  },
+
+  quantityColumn: {
+    flex: 1,
+    textAlign: 'right',
   },
 
   tableCellHeader: {
-    fontSize: 14,
-    color: '#000',
+    fontSize: 12,
+    color: '#1e40af',
     fontWeight: 'bold',
   },
 
+  tableCell: {
+    fontSize: 13,
+    color: '#374151',
+  },
+
+  emptyText: {
+    textAlign: 'center',
+    marginHorizontal: 10,
+    padding: 20,
+    color: '#6b7280',
+    backgroundColor: '#fff',
+  },
 });
 
 export default HomeScreen;
