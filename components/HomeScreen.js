@@ -10,10 +10,11 @@ import {
   Dimensions,
   TouchableOpacity,
   RefreshControl,
+  Modal,
+  ScrollView,
 } from 'react-native';
 
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Picker } from '@react-native-picker/picker';
 import { LineChart } from 'react-native-chart-kit';
 import axios from 'axios';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -76,8 +77,10 @@ const HomeScreen = () => {
   const [yearList, setYearList] = useState([]);
   const [selectedYear, setSelectedYear] = useState(null);
 
-  const [hasNotification, setHasNotification] = useState(false);
+  // NOUVEAU : ouverture/fermeture du sélecteur d'année
+  const [showYearPicker, setShowYearPicker] = useState(false);
 
+  const [hasNotification, setHasNotification] = useState(false);
   const [selectedPoint, setSelectedPoint] = useState(null);
 
   // ==========================================================
@@ -130,9 +133,7 @@ const HomeScreen = () => {
         axios.get(`${API_BASE}/products?year=${year}`),
       ]);
 
-      // --------------------------------------------------------
       // CARTES GÉNÉRALES
-      // --------------------------------------------------------
 
       setCardsData({
         totalEntrees: Number(resCards.data.totalEntrees) || 0,
@@ -141,42 +142,30 @@ const HomeScreen = () => {
         valeurSorties: Number(resCards.data.valeurSorties) || 0,
       });
 
-      // --------------------------------------------------------
       // CLIENT 209 : AMINE
-      // --------------------------------------------------------
 
       setChiffreClient209(
         Number(resCards.data.chiffreClient209) || 0
       );
 
-      // --------------------------------------------------------
       // CLIENT 221 : MEHDI
-      // --------------------------------------------------------
 
       setChiffreClient221(
         Number(resCards.data.chiffreClient221) || 0
       );
 
-      // --------------------------------------------------------
       // CLIENT 281 : SALAH
-      // IMPORTANT : utiliser chiffreClient281
-      // et non chiffreClient221
-      // --------------------------------------------------------
 
       setChiffreClient281(
         Number(resCards.data.chiffreClient281) || 0
       );
 
-      
-console.log('Réponse complète de /cards :', resCards.data);
-console.log('Clés reçues :', Object.keys(resCards.data));
-console.log('Chiffre annuel Amine :', resCards.data.chiffreClient209);
-console.log('Chiffre annuel Mehdi :', resCards.data.chiffreClient221);
-console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
+      console.log('Réponse complète de /cards :', resCards.data);
+      console.log('Chiffre annuel Amine :', resCards.data.chiffreClient209);
+      console.log('Chiffre annuel Mehdi :', resCards.data.chiffreClient221);
+      console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
 
-      // --------------------------------------------------------
       // GRAPHIQUE MENSUEL
-      // --------------------------------------------------------
 
       const chartRows = Array.isArray(resChart.data)
         ? resChart.data
@@ -195,12 +184,9 @@ console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
         datasets: [{ data: dataMap }],
       });
 
-      // Réinitialiser l'infobulle lors du changement d'année
       setSelectedPoint(null);
 
-      // --------------------------------------------------------
       // TABLEAU DES PRODUITS
-      // --------------------------------------------------------
 
       const products = Array.isArray(resTable.data)
         ? resTable.data
@@ -248,8 +234,8 @@ console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
           return false;
         }
 
-        // Conserver la logique de paiement existante :
-        // paiement_id = 1 signifie payé.
+        // paiement_id = 1 signifie payé
+
         if (Number(cmd.paiement_id) === 1) {
           return false;
         }
@@ -295,17 +281,24 @@ console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
           ? res.data
           : [];
 
-        setYearList(years);
+        // Tri des années de la plus récente à la plus ancienne
+        const sortedYears = [...years].sort(
+          (a, b) => Number(b) - Number(a)
+        );
 
-        if (years.length > 0) {
-          const defaultYear = years[0];
+        setYearList(sortedYears);
+
+        if (sortedYears.length > 0) {
+          const defaultYear = sortedYears[0];
 
           setSelectedYear(defaultYear);
 
           await fetchDashboard(defaultYear);
         }
 
-        await fetchNotifications();
+        if (mounted) {
+          await fetchNotifications();
+        }
       } catch (err) {
         console.error(
           'Erreur initialisation :',
@@ -330,11 +323,15 @@ console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
   // ==========================================================
 
   const handleYearChange = (year) => {
-    if (!year || year === selectedYear) {
+    if (year == null || year === '' || Number(year) === Number(selectedYear)) {
+      setShowYearPicker(false);
       return;
     }
 
+    setShowYearPicker(false);
     setSelectedYear(year);
+    setSelectedPoint(null);
+
     fetchDashboard(year);
   };
 
@@ -367,6 +364,7 @@ console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
     return (
       <SafeAreaView style={styles.loader}>
         <ActivityIndicator size="large" color="#2563eb" />
+
         <Text style={styles.loadingText}>
           Chargement du tableau de bord...
         </Text>
@@ -391,11 +389,153 @@ console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
       <Text style={styles.cardValue}>
         {formatMontant(amount)} DH
       </Text>
-
-      {/* <Text style={styles.cardDescription}>
-        Chiffre annuel {selectedYear || ''}
-      </Text> */}
     </View>
+  );
+
+  // ==========================================================
+  // SÉLECTEUR D'ANNÉE PERSONNALISÉ
+  // Compatible Android et iOS
+  // ==========================================================
+
+  const renderYearSelector = () => (
+    <>
+      {/* Bouton compact affichant l'année sélectionnée */}
+
+      <TouchableOpacity
+        style={styles.yearSelector}
+        onPress={() => setShowYearPicker(true)}
+        activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityLabel={`Année sélectionnée : ${selectedYear}`}
+      >
+        <View style={styles.yearSelectorLeft}>
+          <Ionicons
+            name="calendar-outline"
+            size={23}
+            color="#2563eb"
+          />
+
+          <View style={styles.yearSelectorTextContainer}>
+            <Text style={styles.yearSelectorLabel}>
+              Année du tableau de bord
+            </Text>
+
+            <Text style={styles.yearSelectorValue}>
+              {selectedYear || 'Choisir une année'}
+            </Text>
+          </View>
+        </View>
+
+        <Ionicons
+          name="chevron-down"
+          size={23}
+          color="#1e40af"
+        />
+      </TouchableOpacity>
+
+      {/* Fenêtre de sélection des années */}
+
+      <Modal
+        visible={showYearPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowYearPicker(false)}
+        statusBarTranslucent
+      >
+        <View style={styles.modalOverlay}>
+          {/* Fermeture en appuyant sur le fond */}
+
+          <TouchableOpacity
+            style={styles.modalBackdrop}
+            activeOpacity={1}
+            onPress={() => setShowYearPicker(false)}
+            accessibilityLabel="Fermer la sélection des années"
+          />
+
+          <View style={styles.yearModal}>
+            <View style={styles.yearModalHeader}>
+              <View>
+                <Text style={styles.yearModalTitle}>
+                  Choisissez l'année
+                </Text>
+
+                <Text style={styles.yearModalSubtitle}>
+                  Consultez les données de l'année souhaitée
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setShowYearPicker(false)}
+                style={styles.closeModalButton}
+                accessibilityLabel="Fermer"
+              >
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color="#475569"
+                />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              style={styles.yearList}
+              contentContainerStyle={styles.yearListContent}
+              showsVerticalScrollIndicator
+              keyboardShouldPersistTaps="handled"
+            >
+              {yearList.map((year) => {
+                const isSelected =
+                  Number(year) === Number(selectedYear);
+
+                return (
+                  <TouchableOpacity
+                    key={String(year)}
+                    style={[
+                      styles.yearOption,
+                      isSelected && styles.yearOptionSelected,
+                    ]}
+                    onPress={() => handleYearChange(year)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.yearOptionText,
+                        isSelected && styles.yearOptionTextSelected,
+                      ]}
+                    >
+                      {String(year)}
+                    </Text>
+
+                    {isSelected && (
+                      <Ionicons
+                        name="checkmark-circle"
+                        size={23}
+                        color="#2563eb"
+                      />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+
+              {yearList.length === 0 && (
+                <Text style={styles.emptyYearText}>
+                  Aucune année disponible
+                </Text>
+              )}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.cancelYearButton}
+              onPress={() => setShowYearPicker(false)}
+            >
+              <Text style={styles.cancelYearButtonText}>
+                Fermer
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 
   // ==========================================================
@@ -448,33 +588,13 @@ console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
         </View>
       </LinearGradient>
 
-      {/* SÉLECTION DE L'ANNÉE */}
+      {/* SÉLECTEUR D'ANNÉE PERSONNALISÉ */}
 
       <View style={styles.yearContainer}>
-        {/* <Text style={styles.yearLabel}>
-          Année du tableau de bord
-        </Text> */}
-
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={selectedYear}
-            onValueChange={handleYearChange}
-            style={styles.picker}
-            dropdownIconColor="#1e40af"
-          >
-            {yearList.map((year) => (
-              <Picker.Item
-                key={String(year)}
-                label={String(year)}
-                value={year}
-                color="#111827"
-              />
-            ))}
-          </Picker>
-        </View>
+        {renderYearSelector()}
       </View>
 
-      {/* CLIENTS 209 ET 221 */}
+      {/* CLIENTS AMINE ET MEHDI */}
 
       <View style={styles.cardRow}>
         {renderClientCard(
@@ -490,7 +610,7 @@ console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
         )}
       </View>
 
-      {/* CLIENT 281 */}
+      {/* CLIENT SALAH ET VALEUR DES SORTIES */}
 
       <View style={styles.cardRow}>
         {renderClientCard(
@@ -498,8 +618,6 @@ console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
           chiffreClient281,
           '#3d8a26'
         )}
-
-        {/* VALEUR DES SORTIES */}
 
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
@@ -515,133 +633,70 @@ console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
           <Text style={styles.cardValue}>
             {formatMontant(cardsData.valeurSorties)} DH
           </Text>
-
-          {/* <Text style={styles.cardDescription}>
-            Total des commandes
-          </Text> */}
         </View>
       </View>
 
-      {/* ====================================================
-          GRAPHIQUE
-          ==================================================== */}
+      {/* GRAPHIQUE */}
 
-      <Text
-        style={
-          styles.sectionTitle
-        }
-      >
+      <Text style={styles.sectionTitle}>
         📊 Chiffre d'affaires mensuel
       </Text>
 
       <View>
-
         <LineChart
-
-          data={
-            chartData
-          }
-
-          width={
-            screenWidth - 20
-          }
-
+          data={chartData}
+          width={screenWidth - 20}
           height={250}
-
           chartConfig={{
-
-            backgroundGradientFrom:
-              '#fff',
-
-            backgroundGradientTo:
-              '#fff',
-
+            backgroundGradientFrom: '#fff',
+            backgroundGradientTo: '#fff',
             decimalPlaces: 0,
-
-            color: () =>
-              '#2563eb',
-
-            labelColor: () =>
-              '#000',
-
+            color: () => '#2563eb',
+            labelColor: () => '#000',
           }}
-
           bezier
-
           fromZero
-
           withDots
-
-          onDataPointClick={({
-            index,
-            value,
-          }) => {
-
-            const chartWidth =
-              screenWidth - 20;
+          onDataPointClick={({ index, value }) => {
+            const chartWidth = screenWidth - 20;
 
             const x =
-              (
-                chartWidth /
-                chartData.labels.length
-              ) * index;
+              (chartWidth / chartData.labels.length) * index;
 
-            const max =
-              Math.max(
-                ...chartData
-                  .datasets[0]
-                  .data,
-                1
-              );
+            const max = Math.max(
+              ...chartData.datasets[0].data,
+              1
+            );
 
-            const y =
-              200 -
-              (
-                value / max
-              ) * 150;
+            const y = 200 - (value / max) * 150;
 
             setSelectedPoint({
               value,
               x,
               y,
             });
-
           }}
-
           style={{
-            borderRadius: 12
+            borderRadius: 12,
           }}
-
         />
 
         {selectedPoint && (
-
           <View
             style={{
               position: 'absolute',
-              left:
-                selectedPoint.x,
-              top:
-                selectedPoint.y,
-
+              left: selectedPoint.x,
+              top: selectedPoint.y,
               transform: [
-                {
-                  translateX: -20
-                },
-                {
-                  translateY: -30
-                },
+                { translateX: -20 },
+                { translateY: -30 },
               ],
-
-              backgroundColor:
-                '#000',
-
+              backgroundColor: '#000',
               paddingHorizontal: 6,
               paddingVertical: 2,
               borderRadius: 6,
             }}
           >
-
             <Text
               style={{
                 color: '#fff',
@@ -650,12 +705,10 @@ console.log('Chiffre annuel Salah :', resCards.data.chiffreClient281);
             >
               {selectedPoint.value}
             </Text>
-
           </View>
-
         )}
-
       </View>
+
       {/* TITRE DU TABLEAU */}
 
       <Text style={styles.sectionTitle}>
@@ -830,7 +883,7 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
 
-  // ANNÉE
+  // CONTENEUR ANNÉE
 
   yearContainer: {
     marginHorizontal: 10,
@@ -838,25 +891,171 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
-  yearLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 5,
-    marginLeft: 4,
-  },
+  // BOUTON ANNÉE
 
-  pickerContainer: {
+  yearSelector: {
+    minHeight: 76,
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    overflow: 'hidden',
+    borderColor: '#dbe3ef',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+
+    shadowColor: '#2563eb',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.10,
+    shadowRadius: 5,
+    elevation: 3,
   },
 
-  picker: {
+  yearSelectorLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+
+  yearSelectorTextContainer: {
+    marginLeft: 12,
+  },
+
+  yearSelectorLabel: {
+    color: '#64748b',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+
+  yearSelectorValue: {
     color: '#111827',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+
+  // FENÊTRE DE SÉLECTION
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 30,
+  },
+
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  yearModal: {
     width: '100%',
+    maxWidth: 420,
+    maxHeight: '75%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 18,
+
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 5,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+
+  yearModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+
+  yearModalTitle: {
+    color: '#0f172a',
+    fontSize: 19,
+    fontWeight: 'bold',
+  },
+
+  yearModalSubtitle: {
+    color: '#64748b',
+    fontSize: 12,
+    marginTop: 5,
+  },
+
+  closeModalButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
+  },
+
+  yearList: {
+    flexGrow: 0,
+    flexShrink: 1,
+  },
+
+  yearListContent: {
+    paddingVertical: 4,
+  },
+
+  yearOption: {
+    minHeight: 52,
+    borderRadius: 11,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginVertical: 4,
+    backgroundColor: '#f8fafc',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+
+  yearOptionSelected: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#2563eb',
+  },
+
+  yearOptionText: {
+    color: '#334155',
+    fontSize: 17,
+    fontWeight: '500',
+  },
+
+  yearOptionTextSelected: {
+    color: '#1d4ed8',
+    fontWeight: 'bold',
+  },
+
+  emptyYearText: {
+    color: '#64748b',
+    textAlign: 'center',
+    padding: 20,
+  },
+
+  cancelYearButton: {
+    backgroundColor: '#1e40af',
+    paddingVertical: 13,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+
+  cancelYearButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 15,
   },
 
   // CARTES

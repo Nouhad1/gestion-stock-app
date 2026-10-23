@@ -1,3 +1,4 @@
+
 {
   "cli": {
     "version": ">= 3.0.0"
@@ -12,16 +13,20 @@
       }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
     },
     "development": {
       "developmentClient": true,
       "distribution": "internal"
     },
     "simulator": {
-      "ios": {
-        "simulator": true
-      }
-    }
+  "extends": "production",
+  "ios": {
+    "simulator": true
+  }
+}
   }
 }
